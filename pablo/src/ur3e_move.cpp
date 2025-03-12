@@ -5,6 +5,9 @@ public:
     ur3eMove() : Node("ur3e_move") {
         RCLCPP_INFO(this->get_logger(), "C++ Node Started");
     }
+
+private:
+
 };
 
 int main(int argc, char** argv) {
