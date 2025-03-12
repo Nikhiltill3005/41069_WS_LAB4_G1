@@ -1,0 +1,14 @@
+<package format="3">
+  <name>pablo</name>
+  <version>0.0.1</version>
+  <description>ROS 2 package with C++ and Python nodes</description>
+  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
