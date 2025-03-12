@@ -1,15 +1,15 @@
 #include "rclcpp/rclcpp.hpp"
 
-class MyCppNode : public rclcpp::Node {
+class pathPlanning : public rclcpp::Node {
 public:
-    MyCppNode() : Node("my_cpp_node") {
+    pathPlanning() : Node("path_planning") {
         RCLCPP_INFO(this->get_logger(), "C++ Node Started");
     }
 };
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<MyCppNode>());
+    rclcpp::spin(std::make_shared<pathPlanning>());
     rclcpp::shutdown();
     return 0;
 }

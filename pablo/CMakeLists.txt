@@ -7,12 +7,16 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 
 # Add C++ executable
-add_executable(my_cpp_node src/my_cpp_node.cpp)
-ament_target_dependencies(my_cpp_node rclcpp)
+add_executable(ur3e_move src/ur3e_move.cpp)
+ament_target_dependencies(ur3e_move rclcpp)
+
+add_executable(path_planning src/path_planning.cpp)
+ament_target_dependencies(path_planning rclcpp)
 
 # Install C++ executable
 install(TARGETS
-  my_cpp_node
+  ur3e_move
+  path_planning
   DESTINATION lib/${PROJECT_NAME}
 )
 
