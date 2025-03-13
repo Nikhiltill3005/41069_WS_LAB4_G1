@@ -10,11 +10,13 @@ from flask import Flask, Response, request, send_from_directory, jsonify
 from flask_cors import CORS
 from rembg import remove
 from threading import Thread
+from std_msgs.msg import Bool
 
 app = Flask(__name__) # Flask Web Server
 CORS(app)  # Enable CORS for all routes
 
 class ImageProcessor(Node):
+    #---------- Initialiser ----------
     def __init__(self):
         super().__init__('image_processor')
         self.get_logger().info("Image Processor Node Started")
@@ -38,6 +40,10 @@ class ImageProcessor(Node):
         self.server_thread = Thread(target=self.run_flask, daemon=True)
         self.server_thread.start()
 
+        # Create a publisher
+        self.publisher_ = self.create_publisher(Bool, 'image_processed', 10)
+
+    #---------- Destructor ----------
     def delete_old_images(self):
         """Deletes all images in the output directory."""
         for filename in os.listdir(self.output_dir):
@@ -49,9 +55,11 @@ class ImageProcessor(Node):
             except Exception as e:
                 self.get_logger().error(f'Failed to delete {file_path}. Reason: {e}')
 
+    #---------- Flask Server ----------
     def run_flask(self):
         app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
+    #---------- Flask Server Frames ----------
     def generate_frames(self):
         """ Continuously captures frames from the webcam for streaming. """
         while True:
@@ -65,6 +73,7 @@ class ImageProcessor(Node):
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
+    #---------- Image Processing ----------
     def process_image(self):
         """ Processes the captured image (removes background & applies sketch effect). """
         if self.current_frame is None:
@@ -138,6 +147,11 @@ class ImageProcessor(Node):
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
+
+        # Publish message
+        msg = Bool()
+        msg.data = True
+        self.publisher_.publish(msg)
 
         return "Processing complete!", 200
 
