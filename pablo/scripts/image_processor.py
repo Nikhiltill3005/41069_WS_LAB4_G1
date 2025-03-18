@@ -79,8 +79,15 @@ class ImageProcessor(Node):
         if self.current_frame is None:
             return jsonify({"error": "No image captured yet!"}), 400
 
-        # Save original
-        image = self.current_frame.copy()
+        # Scale down image
+        image = self.current_frame.copy() # Original is 640x480
+        scale_percent = 50  # New size is 320x240
+        width = int(image.shape[1] * scale_percent / 100)
+        height = int(image.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+        # Save webcam image
         webcam_image_path = os.path.join(self.output_dir, "0_webcam.jpg")
         cv2.imwrite(webcam_image_path, image)
         self.get_logger().info(f'Webcam Image saved to: {webcam_image_path}')
