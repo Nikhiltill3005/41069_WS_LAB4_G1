@@ -78,13 +78,13 @@ class ImageProcessor(Node):
         """ Processes the captured image (removes background & applies sketch effect). """
         if self.current_frame is None:
             return jsonify({"error": "No image captured yet!"}), 400
-
-        # Scale down image
-        image = self.current_frame.copy() # Original is 640x480
-        scale_percent = 50  # New size is 320x240
-        width = int(image.shape[1] * scale_percent / 100)
-        height = int(image.shape[0] * scale_percent / 100)
-        dim = (width, height)
+        
+        # Scale down image to 960x720px
+        image = self.current_frame.copy() # Original is 640x480px
+        desired_width = 960
+        aspect_ratio = image.shape[1] / image.shape[0]
+        new_height = int(desired_width / aspect_ratio)
+        dim = (desired_width, new_height)
         image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
         # Save webcam image
