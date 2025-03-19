@@ -169,11 +169,21 @@ class ImageProcessor(Node):
         # # Create blank canvas for refined sketch
         # refined_sketch = np.zeros_like(sketch)
 
-        # # Approximate contours for smoother lines
+        # # Function to smooth contours using moving average
+        # def smooth_contour(contour, kernel_size=5):
+        #     smoothed = []
+        #     for i in range(len(contour)):
+        #         # Get neighboring points within kernel size
+        #         start = max(i - kernel_size // 2, 0)
+        #         end = min(i + kernel_size // 2, len(contour) - 1)
+        #         avg_point = np.mean(contour[start:end+1], axis=0)  # Compute average position
+        #         smoothed.append(avg_point)
+        #     return np.array(smoothed, dtype=np.int32)
+
+        # # Process each contour
         # for contour in contours:
-        #     epsilon = 0.01 * cv2.arcLength(contour, True)  # Reduce complexity of lines
-        #     approx = cv2.approxPolyDP(contour, epsilon, True)
-        #     cv2.drawContours(refined_sketch, [approx], -1, (255, 255, 255), 1)  # Draw simplified contours
+        #     smoothed_contour = smooth_contour(contour, kernel_size=7)  # Adjust kernel for more/less smoothing
+        #     cv2.drawContours(refined_sketch, [smoothed_contour], -1, (255, 255, 255), 1)
 
         # # Save the refined sketch
         # refined_sketch_path = os.path.join(self.output_dir, "3_refined_sketch.jpg")
