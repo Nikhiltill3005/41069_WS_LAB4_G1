@@ -70,7 +70,7 @@
             <img id="sketch-img" src="http://localhost:5000/image/2_sketch.jpg" alt="Sketch Effect">
         </div>
         
-        <button onclick="refreshImages()">Start Drawing</button>
+        <button onclick="startDrawing()">Start Drawing</button>
     </div>
 
     <script>
@@ -95,6 +95,13 @@
                     alert(data);
                     setTimeout(refreshImages, 2000); // Delay refresh to ensure processing is done
                 })
+                .catch(error => console.error("Error:", error));
+        }
+
+        function startDrawing() {
+            fetch("http://localhost:5000/draw", { method: "POST" })
+                .then(response => response.text())
+                .then(data => alert(data))
                 .catch(error => console.error("Error:", error));
         }
     </script>

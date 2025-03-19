@@ -6,15 +6,18 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
+# find_package(httplib REQUIRED)
 
 #------------- C++ executables -------------
-add_executable(ur3e_move src/ur3e_move.cpp)
-ament_target_dependencies(ur3e_move rclcpp std_msgs)
+add_executable(ur3e_control src/ur3e_control.cpp)
+ament_target_dependencies(ur3e_control rclcpp std_msgs)
 add_executable(path_planning src/path_planning.cpp)
 ament_target_dependencies(path_planning rclcpp std_msgs)
 
+include_directories(include)
+
 install(TARGETS
-  ur3e_move
+  ur3e_control
   path_planning
   DESTINATION lib/${PROJECT_NAME}
 )

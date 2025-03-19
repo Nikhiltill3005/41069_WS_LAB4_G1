@@ -42,6 +42,7 @@ class ImageProcessor(Node):
 
         # Create a publisher
         self.publisher_ = self.create_publisher(Bool, 'image_processed', 10)
+        self.publisherStarter_ = self.create_publisher(Bool, 'starter', 10)
 
     #---------- Destructor ----------
     def delete_old_images(self):
@@ -174,6 +175,15 @@ def capture_image():
 @app.route('/image/<filename>')
 def get_image(filename):
     return send_from_directory(image_processor.output_dir, filename)
+
+@app.route('/draw', methods=['POST'])
+def start_drawing():
+    """Publishes to the publisherStarter_ topic when the start drawing button is pressed."""
+    msg = Bool()
+    msg.data = True
+    image_processor.publisherStarter_.publish(msg)
+    return jsonify({"message": "Drawing started!"}), 200
+
 
 def main(args=None):
     rclpy.init(args=args)
