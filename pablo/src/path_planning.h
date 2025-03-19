@@ -10,17 +10,17 @@
 #include <cmath>
 #include <fstream>
 
+struct Waypoint {
+    float x, y, z;
+    float distance_from_last;
+
+    Waypoint(float x_val, float y_val, float z_val, float dist)
+        : x(x_val), y(y_val), z(z_val), distance_from_last(dist) {}
+};
+
 class pathPlanning : public rclcpp::Node {
 public:
     pathPlanning();
-
-    struct Waypoint {
-        float x, y, z;
-        float distance_from_last;
-
-        Waypoint(float x_val, float y_val, float z_val, float dist)
-            : x(x_val), y(y_val), z(z_val), distance_from_last(dist) {}
-    };
 
     void tspSolver();
 
