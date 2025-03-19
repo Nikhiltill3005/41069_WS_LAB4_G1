@@ -157,8 +157,31 @@ class ImageProcessor(Node):
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
+        # # Load the completed sketch for refinement
+        # sketch = cv2.imread(sketch_image_path, cv2.IMREAD_GRAYSCALE)
+
+        # # Apply Canny edge detection
+        # edges = cv2.Canny(sketch, 50, 150)
+
+        # # Find contours
+        # contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # # Create blank canvas for refined sketch
+        # refined_sketch = np.zeros_like(sketch)
+
+        # # Approximate contours for smoother lines
+        # for contour in contours:
+        #     epsilon = 0.01 * cv2.arcLength(contour, True)  # Reduce complexity of lines
+        #     approx = cv2.approxPolyDP(contour, epsilon, True)
+        #     cv2.drawContours(refined_sketch, [approx], -1, (255, 255, 255), 1)  # Draw simplified contours
+
+        # # Save the refined sketch
+        # refined_sketch_path = os.path.join(self.output_dir, "3_refined_sketch.jpg")
+        # cv2.imwrite(refined_sketch_path, refined_sketch)
+        # self.get_logger().info(f'Refined Sketch saved to: {refined_sketch_path}')
+
         # Publish message
-        time.sleep(2)
+        time.sleep(5)
         msg = Bool()
         msg.data = True
         self.publisher_.publish(msg)
