@@ -5,6 +5,7 @@ import dlib
 import numpy as np
 import os
 import rclpy
+import time
 from rclpy.node import Node
 from flask import Flask, Response, request, send_from_directory, jsonify
 from flask_cors import CORS
@@ -157,6 +158,7 @@ class ImageProcessor(Node):
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
         # Publish message
+        time.sleep(2)
         msg = Bool()
         msg.data = True
         self.publisher_.publish(msg)
