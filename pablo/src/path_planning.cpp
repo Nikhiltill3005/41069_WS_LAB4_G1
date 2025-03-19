@@ -51,9 +51,9 @@ void pathPlanning::tspSolver(){
     cv::threshold(image, edges, 128, 255, cv::THRESH_BINARY);
     
     // Display the threshold result (optional for debugging)
-    cv::namedWindow("Thresholded Image", cv::WINDOW_NORMAL);
-    cv::imshow("Thresholded Image", edges);
-    cv::waitKey(100); // Brief pause to show the image
+    // cv::namedWindow("Thresholded Image", cv::WINDOW_NORMAL);
+    // cv::imshow("Thresholded Image", edges);
+    // cv::waitKey(100); // Brief pause to show the image
 
     // Find contours in the thresholded image 
     // Using RETR_LIST instead of RETR_EXTERNAL to get all contours including inner ones
@@ -427,72 +427,72 @@ void pathPlanning::tspSolver(){
     saveWaypointsToFile(waypoints, csvDirectory_, csvFilename_);
     
     // Create windows for visualization
-    std::string pathWindowName = "Optimized Path";
-    std::string contourWindowName = "Contour Order";
-    cv::namedWindow(pathWindowName, cv::WINDOW_NORMAL);
-    cv::namedWindow(contourWindowName, cv::WINDOW_NORMAL);
+    // std::string pathWindowName = "Optimized Path";
+    // cv::namedWindow(pathWindowName, cv::WINDOW_NORMAL);
+    // std::string contourWindowName = "Contour Order";
+    // cv::namedWindow(contourWindowName, cv::WINDOW_NORMAL);
     
     // Show the path and ordered contours
-    cv::imshow(pathWindowName, pathImage);
-    cv::imshow(contourWindowName, orderedContourImage);
-    cv::waitKey(0);
+    // cv::imshow(pathWindowName, pathImage);
+    // cv::imshow(contourWindowName, orderedContourImage);
+    // cv::waitKey(0);
     
-    // Display each contour one at a time in the optimal order
-    std::cout << "Press any key to display each contour in optimal order." << std::endl;
+    // // Display each contour one at a time in the optimal order
+    // std::cout << "Press any key to display each contour in optimal order." << std::endl;
     
-    for (size_t i = 0; i < contour_order.size(); ++i) {
-        int idx = contour_order[i];
+    // for (size_t i = 0; i < contour_order.size(); ++i) {
+    //     int idx = contour_order[i];
         
-        // Create a clean image for this contour
-        cv::Mat contourImage = cv::Mat::zeros(image.size(), CV_8UC3);
+    //     // Create a clean image for this contour
+    //     cv::Mat contourImage = cv::Mat::zeros(image.size(), CV_8UC3);
         
-        // Draw previous contours in dark gray
-        for (size_t j = 0; j < i; ++j) {
-            cv::drawContours(contourImage, contours, contour_order[j], cv::Scalar(40, 40, 40), 1);
-        }
+    //     // Draw previous contours in dark gray
+    //     for (size_t j = 0; j < i; ++j) {
+    //         cv::drawContours(contourImage, contours, contour_order[j], cv::Scalar(40, 40, 40), 1);
+    //     }
         
-        // Draw current contour in bright color
-        cv::Scalar color(0, 255, 255); // Yellow
-        cv::drawContours(contourImage, contours, idx, color, 2);
+    //     // Draw current contour in bright color
+    //     cv::Scalar color(0, 255, 255); // Yellow
+    //     cv::drawContours(contourImage, contours, idx, color, 2);
         
-        // Draw the jump to this contour if it's not the first one
-        if (i > 0) {
-            cv::Point prev_end = contours[contour_order[i-1]].back();
-            cv::Point curr_start = contours[idx][0];
-            cv::line(contourImage, prev_end, curr_start, cv::Scalar(0, 255, 0), 1);
-        }
+    //     // Draw the jump to this contour if it's not the first one
+    //     if (i > 0) {
+    //         cv::Point prev_end = contours[contour_order[i-1]].back();
+    //         cv::Point curr_start = contours[idx][0];
+    //         cv::line(contourImage, prev_end, curr_start, cv::Scalar(0, 255, 0), 1);
+    //     }
         
-        // Draw contour information
-        cv::putText(contourImage, "Contour " + std::to_string(i+1) + "/" + std::to_string(contour_order.size()), 
-                   cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
-        cv::putText(contourImage, "Points: " + std::to_string(contours[idx].size()), 
-                   cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
+    //     // Draw contour information
+    //     cv::putText(contourImage, "Contour " + std::to_string(i+1) + "/" + std::to_string(contour_order.size()), 
+    //                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
+    //     cv::putText(contourImage, "Points: " + std::to_string(contours[idx].size()), 
+    //                cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
         
-        if (i > 0) {
-            float jump_dist = calculateDistance(contours[contour_order[i-1]].back(), contours[idx][0]);
-            cv::putText(contourImage, "Jump from previous: " + std::to_string(jump_dist) + " px", 
-                       cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-        }
+    //     if (i > 0) {
+    //         float jump_dist = calculateDistance(contours[contour_order[i-1]].back(), contours[idx][0]);
+    //         cv::putText(contourImage, "Jump from previous: " + std::to_string(jump_dist) + " px", 
+    //                    cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+    //     }
         
-        // Add jump statistics to this image too
-        cv::putText(contourImage, ss.str(), cv::Point(10, img_height - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+    //     // Add jump statistics to this image too
+    //     cv::putText(contourImage, ss.str(), cv::Point(10, img_height - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
         
-        // Display the image
-        cv::imshow(contourWindowName, contourImage);
+    //     // Display the image
+    //     cv::imshow(contourWindowName, contourImage);
         
-        // Wait for key press
-        int key = cv::waitKey(0);
-        if (key == 27) {  // ESC key
-            break;
-        }
-    }
+    //     // Wait for key press
+    //     int key = cv::waitKey(0);
+    //     if (key == 27) {  // ESC key
+    //         break;
+    //     }
+    // }
     
-    // Final display with all contours in order
-    cv::Mat finalImage = orderedContourImage.clone();
-    cv::putText(finalImage, "All contours in optimal order! Press any key to exit.", 
-               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-    cv::imshow(contourWindowName, finalImage);
-    cv::waitKey(0);
+    // // Final display with all contours in order
+    // cv::Mat finalImage = orderedContourImage.clone();
+    // cv::putText(finalImage, "All contours in optimal order! Press any key to exit.", 
+    //            cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
+    // cv::imshow(contourWindowName, finalImage);
+    // cv::waitKey(0);
 }
 
 float pathPlanning::calculateDistance(const cv::Point& p1, const cv::Point& p2) {
