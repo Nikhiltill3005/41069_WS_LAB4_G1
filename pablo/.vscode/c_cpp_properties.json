@@ -5,7 +5,9 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/humble/include/**",
-                "/usr/include/opencv4" 
+                "/usr/include/opencv4",
+                "/usr/include/eigen3",
+                "/opt/ros/humble/share"
             ],
             "defines": [],
             "cStandard": "c17",

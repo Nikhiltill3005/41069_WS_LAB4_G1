@@ -7,10 +7,11 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 
 #------------- C++ executables -------------
 add_executable(ur3e_control src/ur3e_control.cpp)
-ament_target_dependencies(ur3e_control rclcpp std_msgs)
+ament_target_dependencies(ur3e_control rclcpp std_msgs moveit_ros_planning_interface)
 add_executable(path_planning src/path_planning.cpp)
 ament_target_dependencies(path_planning rclcpp std_msgs OpenCV)
 

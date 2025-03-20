@@ -23,14 +23,14 @@ class ImageProcessor(Node):
         self.get_logger().info("Image Processor Node Started")
 
         # Output directory for saved images
-        self.output_dir = os.path.expanduser("~/pablo/output")
+        self.output_dir = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/output")
         
         os.makedirs(self.output_dir, exist_ok=True)
         self.delete_old_images()  # Delete old images
 
         # Load Dlib face detector
         self.detector = dlib.get_frontal_face_detector()
-        model_path = os.path.expanduser("~/pablo/models/shape_predictor_68_face_landmarks.dat")
+        model_path = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/models/shape_predictor_68_face_landmarks.dat")
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
