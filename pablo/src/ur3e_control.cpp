@@ -130,76 +130,13 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
     RCLCPP_INFO(this->get_logger(), "Drawing complete. Robot moved back to home position.");
 }
 
-std::vector<geometry_msgs::msg::Pose> generate_target_poses() {
-    std::vector<geometry_msgs::msg::Pose> poses;
-
-    geometry_msgs::msg::Pose pose1;
-    
-    pose1.position.x = 0.25;
-    pose1.position.y = 0.25;
-    pose1.position.z = 0.1;
-    pose1.orientation.w = 0.0;  // Ensure a valid orientation
-    pose1.orientation.x = 1.0;
-    pose1.orientation.y = 0.0;
-    pose1.orientation.z = 0.0;  // Slightly above surface to avoid collision
-    poses.push_back(pose1);
-    
-    geometry_msgs::msg::Pose pose2 = pose1;
-    pose2.position.x = 0.0;
-    pose2.position.y = 0.25;
-    pose2.position.z = 0.1;
-    pose2.orientation.x = 1.0;
-    pose2.orientation.y = 0.0;
-    pose2.orientation.z = 0.0;
-    poses.push_back(pose2);
-
-    geometry_msgs::msg::Pose pose3 = pose1;
-    pose3.position.x = -0.25;
-    pose3.position.y = 0.25;
-    pose3.position.z = 0.1;
-    pose3.orientation.x = 1.0;
-    pose3.orientation.y = 0.0;
-    pose3.orientation.z = 0.0;
-    poses.push_back(pose3);
-
-    geometry_msgs::msg::Pose pose4 = pose1;
-    pose4.position.x = 0.25;
-    pose4.position.y = 0.30;
-    pose4.position.z = 0.1;  // Slightly above surface to avoid collision
-    pose4.orientation.w = 0.0;  // Ensure a valid orientation
-    pose4.orientation.x = 1.0;
-    pose4.orientation.y = 0.0;
-    pose4.orientation.z = 0.0;
-    poses.push_back(pose4);
-
-    geometry_msgs::msg::Pose pose5 = pose1;
-    pose5.position.x = 0.0;
-    pose5.position.y = 0.45;
-    pose5.position.z = 0.1;
-    pose5.orientation.x = 1.0;
-    pose5.orientation.y = 0.0;
-    pose5.orientation.z = 0.0;
-    poses.push_back(pose5);
-
-    geometry_msgs::msg::Pose pose6 = pose1;
-    pose6.position.x = -0.25;
-    pose6.position.y = 0.45;
-    pose6.position.z = 0.1;
-    pose6.orientation.x = 1.0;
-    pose6.orientation.y = 0.0;
-    pose6.orientation.z = 0.0;
-    poses.push_back(pose6);
-
-    return poses;
-}
-
-void ur3eControl::printCurrentPosition() {
-    geometry_msgs::msg::PoseStamped current_pos = move_group_interface_.getCurrentPose();
-    RCLCPP_INFO(this->get_logger(), "Current Position -> X: %.3f, Y: %.3f, Z: %.3f",
-                current_pos.pose.position.x, 
-                current_pos.pose.position.y, 
-                current_pos.pose.position.z);
-}
+// void ur3eControl::printCurrentPosition() {
+//     geometry_msgs::msg::PoseStamped current_pos = move_group_interface_.getCurrentPose();
+//     RCLCPP_INFO(this->get_logger(), "Current Position -> X: %.3f, Y: %.3f, Z: %.3f",
+//                 current_pos.pose.position.x, 
+//                 current_pos.pose.position.y, 
+//                 current_pos.pose.position.z);
+// }
 
 std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
     std::vector<geometry_msgs::msg::Pose> poses;
@@ -250,41 +187,6 @@ std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
     
     std::cout<< "The size of points is: " <<poses.size() << '\n';
     return poses;
-}
-
-void ur3eControl::publishMarkers(const std::vector<geometry_msgs::msg::Pose> &poses) {
-    int id = 0;
-    for (const auto &pose : poses)
-    {
-        visualization_msgs::msg::Marker marker;
-        marker.header.frame_id = "world";  // Ensure this frame matches your TF setup
-        marker.header.stamp = this->get_clock()->now();
-        marker.ns = "waypoints";
-        marker.id = id++;
-        marker.type = visualization_msgs::msg::Marker::CYLINDER;
-        marker.action = visualization_msgs::msg::Marker::ADD;
-
-        marker.pose.position.x = pose.position.x;
-        marker.pose.position.y = pose.position.y;
-        marker.pose.position.z = pose.position.z;
-
-        // Set the scale (size) of the sphere
-        marker.scale.x = 0.5;
-        marker.scale.y = 0.5;
-        marker.scale.z = 0.5;
-
-        // Set the color (green)
-        marker.color.r = 0.0f;
-        marker.color.g = 1.0f;
-        marker.color.b = 0.0f;
-        marker.color.a = 1.0;  // Fully opaque
-
-        marker.lifetime = rclcpp::Duration::from_seconds(0);
-
-        marker_pub->publish(marker);
-    }
-
-    std::cout << "The amount of markers are: " << id << endl;
 }
 
 void ur3eControl::publishPointCloud(const std::vector<geometry_msgs::msg::Pose> &poses) {
