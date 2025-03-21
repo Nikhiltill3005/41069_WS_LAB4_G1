@@ -114,7 +114,7 @@ class ImageProcessor(Node):
         cv2.imwrite(output_path_gray, face_gray)
         self.get_logger().info(f'Face with background removed saved to: {output_path_gray}')
 
-        # Apply Gaussian Blur
+        # Apply Blur
         blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
 
         # Detect edges using Canny
