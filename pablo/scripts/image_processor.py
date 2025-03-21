@@ -115,13 +115,22 @@ class ImageProcessor(Node):
         self.get_logger().info(f'Face with background removed saved to: {output_path_gray}')
 
         # Apply Gaussian Blur
-        blurred_face = cv2.GaussianBlur(face_gray, (5, 5), 1)
+        blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
 
         # Detect edges using Canny
-        edges = cv2.Canny(blurred_face, 150, 200)
+        edges = cv2.Canny(blurred_face, 50, 150)
+
+        # Remove small contours (noise)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        min_contour_area = 10  # Change this value based on small noise removal needs
+
+        mask = np.zeros_like(edges)
+        for cnt in contours:
+            if cv2.contourArea(cnt) > min_contour_area:
+                cv2.drawContours(mask, [cnt], -1, 255, 1)  # Keep original line thickness
 
         # Convert edges to 3 channels
-        edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+        edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
         # Draw landmark lines
         for face in faces:
@@ -156,39 +165,6 @@ class ImageProcessor(Node):
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
-
-        # # Load the completed sketch for refinement
-        # sketch = cv2.imread(sketch_image_path, cv2.IMREAD_GRAYSCALE)
-
-        # # Apply Canny edge detection
-        # edges = cv2.Canny(sketch, 50, 150)
-
-        # # Find contours
-        # contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # # Create blank canvas for refined sketch
-        # refined_sketch = np.zeros_like(sketch)
-
-        # # Function to smooth contours using moving average
-        # def smooth_contour(contour, kernel_size=5):
-        #     smoothed = []
-        #     for i in range(len(contour)):
-        #         # Get neighboring points within kernel size
-        #         start = max(i - kernel_size // 2, 0)
-        #         end = min(i + kernel_size // 2, len(contour) - 1)
-        #         avg_point = np.mean(contour[start:end+1], axis=0)  # Compute average position
-        #         smoothed.append(avg_point)
-        #     return np.array(smoothed, dtype=np.int32)
-
-        # # Process each contour
-        # for contour in contours:
-        #     smoothed_contour = smooth_contour(contour, kernel_size=7)  # Adjust kernel for more/less smoothing
-        #     cv2.drawContours(refined_sketch, [smoothed_contour], -1, (255, 255, 255), 1)
-
-        # # Save the refined sketch
-        # refined_sketch_path = os.path.join(self.output_dir, "3_refined_sketch.jpg")
-        # cv2.imwrite(refined_sketch_path, refined_sketch)
-        # self.get_logger().info(f'Refined Sketch saved to: {refined_sketch_path}')
 
         # Publish message
         time.sleep(1)

@@ -73,6 +73,23 @@ void pathPlanning::tspSolver(){
         }
     }
     contours = filtered_contours;
+
+    // // Save test
+    // // Create a blank image (black background)
+    // cv::Mat output_image = cv::Mat::zeros(image.size(), CV_8UC3);
+
+    // // Draw contours on the blank image
+    // cv::drawContours(output_image, contours, -1, cv::Scalar(255, 255, 255), 1);
+
+    // // Define output path
+    // std::filesystem::path output_path = std::filesystem::path(getenv("HOME")) / "pablo/output/contours.jpg";
+
+    // // Save the image
+    // if (!cv::imwrite(output_path, output_image)) {
+    //     std::cerr << "Failed to save image: " << output_path << std::endl;
+    // } else {
+    //     std::cout << "Image saved successfully: " << output_path << std::endl;
+    // }
     
     // Function to calculate proximity score between two contours
     auto calculateContourProximity = [this](const std::vector<cv::Point>& contour1, const std::vector<cv::Point>& contour2, 
@@ -258,7 +275,7 @@ void pathPlanning::tspSolver(){
             contours_merged = true;
         }
     }
-    
+
     std::cout << "Final number of contours after concatenation: " << contours.size() << std::endl;
 
     std::cout << "Found " << contours.size() << " contours after filtering." << std::endl;
@@ -425,15 +442,23 @@ void pathPlanning::tspSolver(){
 
     // Save waypoints to CSV
     saveWaypointsToFile(waypoints, csvDirectory_, csvFilename_);
-    
-    // Create windows for visualization
+
+    // Save the ordered contour image to a JPG file
+    std::filesystem::path output_path = std::filesystem::path(getenv("HOME")) / "pablo/output/3_ordered_contours.jpg";
+    if (!cv::imwrite(output_path.string(), orderedContourImage)) {
+        std::cerr << "Failed to save image: " << output_path << std::endl;
+    } else {
+        std::cout << "Ordered contour image saved successfully: " << output_path << std::endl;
+    }
+
+    // // Show Optimised Path
     // std::string pathWindowName = "Optimized Path";
     // cv::namedWindow(pathWindowName, cv::WINDOW_NORMAL);
+    // cv::imshow(pathWindowName, pathImage);
+
+    // // Show Contour Order
     // std::string contourWindowName = "Contour Order";
     // cv::namedWindow(contourWindowName, cv::WINDOW_NORMAL);
-    
-    // Show the path and ordered contours
-    // cv::imshow(pathWindowName, pathImage);
     // cv::imshow(contourWindowName, orderedContourImage);
     // cv::waitKey(0);
     
