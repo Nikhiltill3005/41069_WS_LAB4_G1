@@ -1,34 +1,44 @@
 #include "ur3e_control.h"
 
 ur3eControl::ur3eControl() 
-    :   Node("ur3e_control", rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true)),
-    move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
+: Node("ur3e_control", rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true)),
+move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
     RCLCPP_INFO(this->get_logger(), "UR3e Move Node Started");
-
+    
+    // Set parameters
     move_group_interface_.setMaxVelocityScalingFactor(0.9);  // Full velocity
     move_group_interface_.setMaxAccelerationScalingFactor(0.9);  // Full acceleration
-    RCLCPP_INFO(this->get_logger(), "MoveIt Planner Node has started.");
+    start_ = false;
+    planningComplete_ = false;
     home_position();
+
     // Create both marker and pointcloud publishers
     marker_pub = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 1000);
     point_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("waypoints_cloud", 10);
-    
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    // Create a subscriber
+    // Create subscribers
     pathPlanningSub_ = this->create_subscription<std_msgs::msg::Bool>(
-        "path_planned", 10, std::bind(&ur3eControl::imageProcessedCallback, this, std::placeholders::_1));
-
-    // Create a subscriber
+        "path_planned", 10, std::bind(&ur3eControl::pathPlanningCallback, this, std::placeholders::_1));
     startDrawingSub_ = this->create_subscription<std_msgs::msg::Bool>(
         "starter", 10, std::bind(&ur3eControl::startDrawingCallback, this, std::placeholders::_1));
+
+    // Start the drawing thread
+    drawing_thread_ = new std::thread(&ur3eControl::executeDrawing, this);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
-void ur3eControl::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg) {
+ur3eControl::~ur3eControl() {
+    drawing_thread_->join();
+    delete drawing_thread_;
+}
+
+void ur3eControl::pathPlanningCallback(const std_msgs::msg::Bool::SharedPtr msg) {
     try {
         if (msg->data == true) {
-            RCLCPP_INFO(this->get_logger(), "Image processing complete. Waiting for start...");
-            // Add your path planning logic here
+            RCLCPP_INFO(this->get_logger(), "Path planning complete.");
+            waypoints_ = readCSVposes();
+            RCLCPP_INFO(this->get_logger(), "Waiting for start command...");
+            planningComplete_ = true;
         }
     } catch (const std::exception &e) {
         RCLCPP_ERROR(this->get_logger(), "Exception in imageProcessedCallback: %s", e.what());
@@ -41,13 +51,12 @@ void ur3eControl::startDrawingCallback(const std_msgs::msg::Bool::SharedPtr msg)
     try {
         if (msg->data == true) {
             RCLCPP_INFO(this->get_logger(), "Starting drawing...");
-            // Add your drawing logic here
-            start = true;
-            // home_position();
-            std::vector<geometry_msgs::msg::Pose> waypoints = readCSVposes();
-            // Publish both marker and point cloud visualizations
-            publishPointCloud(waypoints);
-            move_along_cartesian_path(waypoints);
+            if(planningComplete_ = true){
+                start_ = true;
+            }
+            else{
+                RCLCPP_ERROR(this->get_logger(), "Path planning not complete!");
+            }
         }
     } catch (const std::exception &e) {
         RCLCPP_ERROR(this->get_logger(), "Exception in startDrawingCallback: %s", e.what());
@@ -56,25 +65,39 @@ void ur3eControl::startDrawingCallback(const std_msgs::msg::Bool::SharedPtr msg)
     }
 }
 
-void ur3eControl::home_position()
-    {
-        std::vector<double> joint_positions = {-1.5708, -1.62316, -2.46091, -0.628319, -4.71239, 0.0};  
-
-        move_group_interface_.setJointValueTarget(joint_positions);
-        moveit::planning_interface::MoveGroupInterface::Plan joint_plan;
-        auto success = static_cast<bool>(move_group_interface_.plan(joint_plan));
-
-        if (success) {
-            move_group_interface_.execute(joint_plan);
-            RCLCPP_INFO(this->get_logger(), "Robot moved to initial joint positions!");
-        } else {
-            RCLCPP_ERROR(this->get_logger(), "Planning failed for initial joint positions!");
+void ur3eControl::executeDrawing() {
+    // While thread is running
+    while (rclcpp::ok()) {
+        // Move robot while start_ is true
+        while(!start_) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+        RCLCPP_INFO(this->get_logger(), "Moving Robot...");
+        publishPointCloud(waypoints_);
+        move_along_cartesian_path(waypoints_);
     }
+}
 
-void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose> points)
-{
-        // Use CSV poses instead of hardcoded ones
+void ur3eControl::home_position() {
+    // Set the joint positions for the home position
+    std::vector<double> joint_positions = {-1.5708, -1.62316, -2.46091, -0.628319, -4.71239, 0.0};  
+
+    // Plan movement
+    move_group_interface_.setJointValueTarget(joint_positions);
+    moveit::planning_interface::MoveGroupInterface::Plan joint_plan;
+    auto success = static_cast<bool>(move_group_interface_.plan(joint_plan));
+
+    // Execute the plan
+    if (success) {
+        move_group_interface_.execute(joint_plan);
+        RCLCPP_INFO(this->get_logger(), "Robot moved to initial joint positions!");
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "Planning failed for initial joint positions!");
+    }
+}
+
+void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose> points) {
+    // Use CSV poses instead of hardcoded ones
     std::cout << "reading csv files" << '\n';
     std::cout << "waypoints size is " << points.size() << endl;
     // std::vector<geometry_msgs::msg::Pose> waypoints = generate_target_poses();
@@ -100,10 +123,14 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
     } else {
         RCLCPP_ERROR(this->get_logger(), "Cartesian path planning failed! Only %.2f%% succeeded.", fraction * 100);
     }
+    
+    // Move back to home position
+    start_ = false;
+    home_position();
+    RCLCPP_INFO(this->get_logger(), "Drawing complete. Robot moved back to home position.");
 }
 
-std::vector<geometry_msgs::msg::Pose> generate_target_poses()
-{
+std::vector<geometry_msgs::msg::Pose> generate_target_poses() {
     std::vector<geometry_msgs::msg::Pose> poses;
 
     geometry_msgs::msg::Pose pose1;
@@ -116,7 +143,7 @@ std::vector<geometry_msgs::msg::Pose> generate_target_poses()
     pose1.orientation.y = 0.0;
     pose1.orientation.z = 0.0;  // Slightly above surface to avoid collision
     poses.push_back(pose1);
-
+    
     geometry_msgs::msg::Pose pose2 = pose1;
     pose2.position.x = 0.0;
     pose2.position.y = 0.25;
@@ -166,8 +193,7 @@ std::vector<geometry_msgs::msg::Pose> generate_target_poses()
     return poses;
 }
 
-void ur3eControl::printCurrentPosition()
-{
+void ur3eControl::printCurrentPosition() {
     geometry_msgs::msg::PoseStamped current_pos = move_group_interface_.getCurrentPose();
     RCLCPP_INFO(this->get_logger(), "Current Position -> X: %.3f, Y: %.3f, Z: %.3f",
                 current_pos.pose.position.x, 
@@ -175,8 +201,7 @@ void ur3eControl::printCurrentPosition()
                 current_pos.pose.position.z);
 }
 
-std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes()
-{
+std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
     std::vector<geometry_msgs::msg::Pose> poses;
     std::ifstream file("/home/edan/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv");
     std::string line;
@@ -227,8 +252,7 @@ std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes()
     return poses;
 }
 
-void ur3eControl::publishMarkers(const std::vector<geometry_msgs::msg::Pose> &poses)
-{
+void ur3eControl::publishMarkers(const std::vector<geometry_msgs::msg::Pose> &poses) {
     int id = 0;
     for (const auto &pose : poses)
     {
@@ -263,8 +287,7 @@ void ur3eControl::publishMarkers(const std::vector<geometry_msgs::msg::Pose> &po
     std::cout << "The amount of markers are: " << id << endl;
 }
 
-void ur3eControl::publishPointCloud(const std::vector<geometry_msgs::msg::Pose> &poses)
-{
+void ur3eControl::publishPointCloud(const std::vector<geometry_msgs::msg::Pose> &poses) {
     // Create a PointCloud2 message
     sensor_msgs::msg::PointCloud2 cloud;
     
@@ -324,7 +347,6 @@ void ur3eControl::publishPointCloud(const std::vector<geometry_msgs::msg::Pose> 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<ur3eControl>());
-    
     rclcpp::shutdown();
     return 0;
 }

@@ -18,6 +18,7 @@ using namespace std;
 class ur3eControl : public rclcpp::Node {
     public:
         ur3eControl();
+        ~ur3eControl();
 
         void home_position();
         void move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose> points);
@@ -26,9 +27,11 @@ class ur3eControl : public rclcpp::Node {
         std::vector<geometry_msgs::msg::Pose> readCSVposes();
         void publishMarkers(const std::vector<geometry_msgs::msg::Pose> &poses);
         void publishPointCloud(const std::vector<geometry_msgs::msg::Pose> &poses);
+
+        void executeDrawing();
     
     private:
-        void imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg);
+        void pathPlanningCallback(const std_msgs::msg::Bool::SharedPtr msg);
         void startDrawingCallback(const std_msgs::msg::Bool::SharedPtr msg);
     
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pathPlanningSub_;
@@ -38,7 +41,12 @@ class ur3eControl : public rclcpp::Node {
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub;
         moveit::planning_interface::MoveGroupInterface move_group_interface_;
 
-        bool start = false;
+        std::vector<geometry_msgs::msg::Pose> waypoints_;
+
+        std::thread* drawing_thread_;
+
+        bool start_;
+        bool planningComplete_;
     };
 
 #endif // UR3E_CONTROL_H

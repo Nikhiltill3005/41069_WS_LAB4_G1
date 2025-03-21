@@ -21,7 +21,6 @@ struct Waypoint {
 class pathPlanning : public rclcpp::Node {
 public:
     pathPlanning();
-
     void tspSolver();
 
 private:

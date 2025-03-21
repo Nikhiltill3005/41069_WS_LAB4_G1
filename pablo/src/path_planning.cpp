@@ -4,11 +4,9 @@
 pathPlanning::pathPlanning() : Node("path_planning") {
     RCLCPP_INFO(this->get_logger(), "Path Planning Node Started");
 
+    // Create subscribers and publishers
     imageProcessorSub_ = this->create_subscription<std_msgs::msg::Bool>(
-        "image_processed", 10,
-        std::bind(&pathPlanning::imageProcessedCallback, this, std::placeholders::_1)
-    );
-
+        "image_processed", 10, std::bind(&pathPlanning::imageProcessedCallback, this, std::placeholders::_1));
     pathPlanningPub_ = this->create_publisher<std_msgs::msg::Bool>("path_planned", 10);
 }
 
@@ -16,8 +14,10 @@ void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr m
     try {
         if (msg->data) {
             RCLCPP_INFO(this->get_logger(), "Image processing complete. Starting path planning...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             tspSolver(); // Start Path Planning
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            
+            // Publish message to indicate path planning is complete
             std_msgs::msg::Bool pathMsg;
             pathMsg.data = true;
             pathPlanningPub_->publish(pathMsg);
