@@ -34,7 +34,7 @@ class ImageProcessor(Node):
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(2) # 0 for default camera, 1/2 for external camera
         self.current_frame = None
 
         # Start Flask server in a separate thread
@@ -118,7 +118,7 @@ class ImageProcessor(Node):
         blurred_face = cv2.GaussianBlur(face_gray, (5, 5), 1)
 
         # Detect edges using Canny
-        edges = cv2.Canny(blurred_face, 50, 150)
+        edges = cv2.Canny(blurred_face, 150, 200)
 
         # Convert edges to 3 channels
         edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
@@ -191,7 +191,7 @@ class ImageProcessor(Node):
         # self.get_logger().info(f'Refined Sketch saved to: {refined_sketch_path}')
 
         # Publish message
-        time.sleep(5)
+        time.sleep(1)
         msg = Bool()
         msg.data = True
         self.publisher_.publish(msg)
