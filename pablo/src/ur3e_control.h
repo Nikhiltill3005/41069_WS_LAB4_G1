@@ -47,6 +47,8 @@ class ur3eControl : public rclcpp::Node {
 
         bool start_;
         bool planningComplete_;
+
+        std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv";
     };
 
 #endif // UR3E_CONTROL_H

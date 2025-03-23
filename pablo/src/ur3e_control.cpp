@@ -10,7 +10,7 @@ move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
     move_group_interface_.setMaxAccelerationScalingFactor(0.9);  // Full acceleration
     start_ = false;
     planningComplete_ = false;
-    home_position();
+    home_position(); // Initialize robot to home position
 
     // Create both marker and pointcloud publishers
     marker_pub = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 1000);
@@ -36,9 +36,9 @@ void ur3eControl::pathPlanningCallback(const std_msgs::msg::Bool::SharedPtr msg)
     try {
         if (msg->data == true) {
             RCLCPP_INFO(this->get_logger(), "Path planning complete.");
-            waypoints_ = readCSVposes();
+            waypoints_ = readCSVposes(); // Read waypoints from CSV file
             RCLCPP_INFO(this->get_logger(), "Waiting for start command...");
-            planningComplete_ = true;
+            planningComplete_ = true; // Set flag to indicate planning is complete
         }
     } catch (const std::exception &e) {
         RCLCPP_ERROR(this->get_logger(), "Exception in imageProcessedCallback: %s", e.what());
@@ -52,7 +52,7 @@ void ur3eControl::startDrawingCallback(const std_msgs::msg::Bool::SharedPtr msg)
         if (msg->data == true) {
             RCLCPP_INFO(this->get_logger(), "Starting drawing...");
             if(planningComplete_ = true){
-                start_ = true;
+                start_ = true; // Set flag to start drawing
             }
             else{
                 RCLCPP_ERROR(this->get_logger(), "Path planning not complete!");
@@ -131,7 +131,7 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
 
 std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
     std::vector<geometry_msgs::msg::Pose> poses;
-    std::ifstream file("/home/edan/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv");
+    std::ifstream file(csvDirectory_);
     std::string line;
     int row_count = 0;
 
