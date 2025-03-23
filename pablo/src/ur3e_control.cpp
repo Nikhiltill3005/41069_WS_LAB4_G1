@@ -100,7 +100,6 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
     // Use CSV poses instead of hardcoded ones
     std::cout << "reading csv files" << '\n';
     std::cout << "waypoints size is " << points.size() << endl;
-    // std::vector<geometry_msgs::msg::Pose> waypoints = generate_target_poses();
     moveit_msgs::msg::RobotTrajectory trajectory;
     const double eef_step = 0.01;  // Step size in meters (small values = smoother motion)
     const double jump_threshold = 0.0; // 0 to disable jump detection
@@ -129,14 +128,6 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
     home_position();
     RCLCPP_INFO(this->get_logger(), "Drawing complete. Robot moved back to home position.");
 }
-
-// void ur3eControl::printCurrentPosition() {
-//     geometry_msgs::msg::PoseStamped current_pos = move_group_interface_.getCurrentPose();
-//     RCLCPP_INFO(this->get_logger(), "Current Position -> X: %.3f, Y: %.3f, Z: %.3f",
-//                 current_pos.pose.position.x, 
-//                 current_pos.pose.position.y, 
-//                 current_pos.pose.position.z);
-// }
 
 std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
     std::vector<geometry_msgs::msg::Pose> poses;

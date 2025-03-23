@@ -34,6 +34,11 @@
             display: inline-block;
             border-radius: 10px;
         }
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Space between buttons */
+        }
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -52,25 +57,58 @@
 <body>
     <h1>Pablo - Selfie Drawing Robot</h1>
     <div class="grid-container">
+        <!-- Row 1 -->
         <div class="rectangular-box">
-            <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="Webcam Feed">
+            <img id="webcam-feed" src="http://localhost:5000/video_feed" alt=""">
         </div>
 
         <div class="rectangular-box">
-            <img id="original-img" src="http://localhost:5000/image/0_webcam.jpg" alt="Original Image">
+            <img id="original-img" src="http://localhost:5000/image/0_webcam.jpg" alt="">
         </div>
 
-        <button onclick="capturePhoto()">Capture Photo</button>
-
         <div class="rectangular-box">
-            <img id="no-bg-img" src="http://localhost:5000/image/1_no_background.jpg" alt="No Background">
+            <!-- <iframe id="rviz-simulator" src="http://localhost:5000/rviz_stream" width="480" height="360" frameborder="0" allowfullscreen></iframe> -->
+        </div>
+
+        <!-- Row 2 -->
+        <div>   
+            <p>Webcam Feed</p>
+        </div>
+
+        <div>   
+            <p>Selfie Image</p>
+        </div>
+
+        <div>   
+            <p>RVIZ Simulator</p>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="rectangular-box">
+            <img id="no-bg-img" src="http://localhost:5000/image/1_no_background.jpg" alt="">
         </div>
         
         <div class="rectangular-box">
-            <img id="sketch-img" src="http://localhost:5000/image/2_sketch.jpg" alt="Sketch Effect">
+            <img id="sketch-img" src="http://localhost:5000/image/2_sketch.jpg" alt="">
         </div>
-        
-        <button onclick="startDrawing()">Start Drawing</button>
+
+        <div class="button-container">
+            <button onclick="capturePhoto()">Capture Photo</button>
+            <button onclick="startDrawing()">Start Drawing</button>
+        </div>
+
+        <!-- Row 4 -->
+        <div>   
+            <p>Background Removed</p>
+        </div>
+
+        <div>   
+            <p>Sketch Profile</p>
+        </div>
+
+        <div>   
+            <p></p>
+        </div>
     </div>
 
     <script>
