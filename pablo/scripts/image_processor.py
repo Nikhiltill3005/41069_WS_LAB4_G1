@@ -195,7 +195,6 @@ def start_drawing():
     image_processor.publisherStarter_.publish(msg)
     return jsonify({"message": "Drawing started!"}), 200
 
-
 def main(args=None):
     rclpy.init(args=args)
     global image_processor
