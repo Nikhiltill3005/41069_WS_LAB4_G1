@@ -78,9 +78,15 @@ void ur3eControl::executeDrawing() {
     }
 }
 
+constexpr double ur3eControl::degToRad(double degrees) {
+    constexpr double pi = 3.14159265358979323846;
+    return degrees * pi / 180.0;
+}
+
 void ur3eControl::home_position() {
     // Set the joint positions for the home position
-    std::vector<double> joint_positions = {-1.5708, -1.62316, -2.46091, -0.628319, -4.71239, 0.0};  
+    // std::vector<double> joint_positions = {-1.5708, -1.62316, -2.46091, -0.628319, -4.71239, 0.0}; 
+    std::vector<double> joint_positions = {degToRad(-90), degToRad(-90), degToRad(-90), degToRad(-90), degToRad(90), 0.0};   
 
     // Plan movement
     move_group_interface_.setJointValueTarget(joint_positions);

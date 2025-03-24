@@ -33,6 +33,11 @@ private:
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imageProcessorSub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pathPlanningPub_;
+
+    int raiseZ_;
+    int drawZ_;
+    int penHeight_;
+    int canvasHeight_;
 };
 
 #endif // PATH_PLANNING_H

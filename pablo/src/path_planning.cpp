@@ -8,6 +8,12 @@ pathPlanning::pathPlanning() : Node("path_planning") {
     imageProcessorSub_ = this->create_subscription<std_msgs::msg::Bool>(
         "image_processed", 10, std::bind(&pathPlanning::imageProcessedCallback, this, std::placeholders::_1));
     pathPlanningPub_ = this->create_publisher<std_msgs::msg::Bool>("path_planned", 10);
+
+    // Set the height to raise the pen
+    penHeight_ = 640; // 640/4000 = 0.16m = 160mm
+    canvasHeight_ = 24; // 24/4000 = 0.006m = 6mm
+    raiseZ_ = penHeight_ + 100; // 100/4000 = 0.025m = 25mm
+    drawZ_ = canvasHeight_ + penHeight_; // 664/4000 = 0.166m = 166mm
 }
 
 void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg) {
@@ -302,16 +308,23 @@ void pathPlanning::tspSolver(){
     // Add first contour's points to waypoints
     const auto& first_contour = contours[current_contour_idx];
     if (!first_contour.empty()) {
+        // Add a point to raise the pen
+        waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, raiseZ_, 999));
+        
         // Add the first point with zero distance
-        waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, 0.0, 0.0));
+        waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, drawZ_, 0.0));
         
         // Add remaining points from the first contour
         for (size_t i = 1; i < first_contour.size(); ++i) {
             float dist = calculateDistance(first_contour[i-1], first_contour[i]);
-            waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, 0.0, dist));
+            waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, drawZ_, dist));
+            if(i==(first_contour.size()-1)){
+                // Add a point to raise the pen
+                waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, raiseZ_, 999));
+            }
         }
     }
-    
+
     // Process all contours in optimal order to minimize jumps
     int contours_processed = 1;  // Already processed the first one
     while (contours_processed < contours.size()) {
@@ -346,13 +359,21 @@ void pathPlanning::tspSolver(){
                       << " (distance: " << min_distance << " pixels)" << std::endl;
             
             // Add jump waypoint
-            waypoints.push_back(Waypoint(closest_start_point.x, closest_start_point.y, 0.0, min_distance));
+            waypoints.push_back(Waypoint(closest_start_point.x, closest_start_point.y, raiseZ_, 999));
             
             // Add all points from the closest contour
             const auto& closest_contour = contours[closest_contour_idx];
-            for (size_t i = 1; i < closest_contour.size(); ++i) {
-                float dist = calculateDistance(closest_contour[i-1], closest_contour[i]);
-                waypoints.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, 0.0, dist));
+            if (!closest_contour.empty()) {
+                waypoints.push_back(Waypoint(closest_contour[0].x, closest_contour[0].y, drawZ_, 0.0));
+                
+                for (size_t i = 1; i < closest_contour.size(); ++i) {
+                    float dist = calculateDistance(closest_contour[i-1], closest_contour[i]);
+                    waypoints.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, drawZ_, dist));
+                    if(i==(closest_contour.size()-1)){
+                        // Add a point to raise the pen
+                        waypoints.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, raiseZ_, 999));
+                    }
+                }
             }
             
             // Update current contour and mark as processed

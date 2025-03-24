@@ -33,6 +33,8 @@ class ur3eControl : public rclcpp::Node {
     private:
         void pathPlanningCallback(const std_msgs::msg::Bool::SharedPtr msg);
         void startDrawingCallback(const std_msgs::msg::Bool::SharedPtr msg);
+
+        constexpr double degToRad(double degrees);
     
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr pathPlanningSub_;
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr startDrawingSub_;
