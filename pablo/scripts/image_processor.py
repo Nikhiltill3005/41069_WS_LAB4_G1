@@ -167,17 +167,6 @@ class ImageProcessor(Node):
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
-        # Extract XYZ points from contours and save to CSV
-        csv_path = os.path.join(self.output_dir, "contours.csv")
-        with open(csv_path, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(["X", "Y", "Z"])  # Header
-            for i, cnt in enumerate(contours):  # i is the index of cnt in contours
-                for point in cnt:
-                    x, y = point[0]
-                    writer.writerow([i, x, y])
-        self.get_logger().info(f'Contours saved to CSV: {csv_path}')
-
         # Publish message
         time.sleep(1)
         msg = Bool()
