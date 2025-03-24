@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import cv2
+import csv
 import dlib
 import numpy as np
 import os
@@ -26,7 +27,7 @@ class ImageProcessor(Node):
         self.output_dir = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/output")
         
         os.makedirs(self.output_dir, exist_ok=True)
-        self.delete_old_images()  # Delete old images
+        self.delete_old_files()  # Delete old images
 
         # Load Dlib face detector
         self.detector = dlib.get_frontal_face_detector()
@@ -46,7 +47,7 @@ class ImageProcessor(Node):
         self.publisherStarter_ = self.create_publisher(Bool, 'starter', 10)
 
     #---------- Destructor ----------
-    def delete_old_images(self):
+    def delete_old_files(self):
         """Deletes all images in the output directory."""
         for filename in os.listdir(self.output_dir):
             file_path = os.path.join(self.output_dir, filename)
@@ -127,7 +128,7 @@ class ImageProcessor(Node):
         mask = np.zeros_like(edges)
         for cnt in contours:
             if cv2.contourArea(cnt) > min_contour_area:
-                cv2.drawContours(mask, [cnt], -1, 255, 1)  # Keep original line thickness
+                cv2.drawContours(mask, [cnt], -1, 255, 1)  # Set thickness to 1px
 
         # Convert edges to 3 channels
         edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
@@ -165,6 +166,17 @@ class ImageProcessor(Node):
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
+
+        # Extract XYZ points from contours and save to CSV
+        csv_path = os.path.join(self.output_dir, "contours.csv")
+        with open(csv_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["X", "Y", "Z"])  # Header
+            for i, cnt in enumerate(contours):  # i is the index of cnt in contours
+                for point in cnt:
+                    x, y = point[0]
+                    writer.writerow([i, x, y])
+        self.get_logger().info(f'Contours saved to CSV: {csv_path}')
 
         # Publish message
         time.sleep(1)
