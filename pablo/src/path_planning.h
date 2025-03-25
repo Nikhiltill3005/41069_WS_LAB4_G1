@@ -26,8 +26,9 @@ public:
 private:
     void imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg);
     float calculateDistance(const cv::Point& p1, const cv::Point& p2);
-    void saveWaypointsToFile(const std::vector<Waypoint>& waypoints, const std::string& directory, const std::string& filename);
-
+    void saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contourwaypoints, 
+        const std::string& directory, const std::string& filename);
+        
     std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
     std::string csvFilename_ = "waypoints.csv";
 

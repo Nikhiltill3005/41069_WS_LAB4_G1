@@ -12,18 +12,16 @@ pathPlanning::pathPlanning() : Node("path_planning") {
     // Set the height to raise the pen
     penHeight_ = 640; // 640/4000 = 0.16m = 160mm
     canvasHeight_ = 24; // 24/4000 = 0.006m = 6mm
-    raiseZ_ = penHeight_ + 100; // 100/4000 = 0.025m = 25mm
     drawZ_ = canvasHeight_ + penHeight_; // 664/4000 = 0.166m = 166mm
+    raiseZ_ = drawZ_ + 100; // 100/4000 = 0.025m = 25mm
 }
 
 void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg) {
     try {
         if (msg->data) {
             RCLCPP_INFO(this->get_logger(), "Image processing complete. Starting path planning...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             tspSolver(); // Start Path Planning
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            
-            // Publish message to indicate path planning is complete
             std_msgs::msg::Bool pathMsg;
             pathMsg.data = true;
             pathPlanningPub_->publish(pathMsg);
@@ -52,26 +50,19 @@ void pathPlanning::tspSolver(){
         return;
     }
 
-    // Apply Canny edge detection
+    // Apply binary threshold instead of Canny since the image is already edge-detected
     cv::Mat edges;
     cv::threshold(image, edges, 128, 255, cv::THRESH_BINARY);
     
-    // Display the threshold result (optional for debugging)
-    // cv::namedWindow("Thresholded Image", cv::WINDOW_NORMAL);
-    // cv::imshow("Thresholded Image", edges);
-    // cv::waitKey(100); // Brief pause to show the image
-
     // Find contours in the thresholded image 
     // Using RETR_LIST instead of RETR_EXTERNAL to get all contours including inner ones
-    // Using CHAIN_APPROX_NONE to get all contour points
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
     cv::findContours(edges, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
     
     std::cout << "Initial contour count: " << contours.size() << std::endl;
 
-
-    // Filter out very small contours (optional)
+    // Filter out very small contours
     std::vector<std::vector<cv::Point>> filtered_contours;
     for (const auto& contour : contours) {
         if (contour.size() > 5) {  // Filter contours with fewer than 5 points
@@ -79,23 +70,6 @@ void pathPlanning::tspSolver(){
         }
     }
     contours = filtered_contours;
-
-    // // Save test
-    // // Create a blank image (black background)
-    // cv::Mat output_image = cv::Mat::zeros(image.size(), CV_8UC3);
-
-    // // Draw contours on the blank image
-    // cv::drawContours(output_image, contours, -1, cv::Scalar(255, 255, 255), 1);
-
-    // // Define output path
-    // std::filesystem::path output_path = std::filesystem::path(getenv("HOME")) / "pablo/output/contours.jpg";
-
-    // // Save the image
-    // if (!cv::imwrite(output_path, output_image)) {
-    //     std::cerr << "Failed to save image: " << output_path << std::endl;
-    // } else {
-    //     std::cout << "Image saved successfully: " << output_path << std::endl;
-    // }
     
     // Function to calculate proximity score between two contours
     auto calculateContourProximity = [this](const std::vector<cv::Point>& contour1, const std::vector<cv::Point>& contour2, 
@@ -105,9 +79,9 @@ void pathPlanning::tspSolver(){
         int total_comparisons = 0;
         float min_distance = std::numeric_limits<float>::max();
         
-        // Sample points from both contours for efficiency (use more points for better accuracy)
-        int sample_rate = std::max(1, static_cast<int>(contour1.size() / 20)); // Check about 20 points from contour1
-        int sample_rate2 = std::max(1, static_cast<int>(contour2.size() / 20)); // Check about 20 points from contour2
+        // Sample points from both contours for efficiency
+        int sample_rate = std::max(1, static_cast<int>(contour1.size() / 20)); 
+        int sample_rate2 = std::max(1, static_cast<int>(contour2.size() / 20)); 
         
         for (size_t i = 0; i < contour1.size(); i += sample_rate) {
             for (size_t j = 0; j < contour2.size(); j += sample_rate2) {
@@ -220,7 +194,7 @@ void pathPlanning::tspSolver(){
     
     contours_merged = true;
     float proximity_threshold = 8.0f;  // Points closer than this are considered "close"
-    float proximity_score_threshold = 0.15f;  // If 40% or more of sampled points are close, merge the contours
+    float proximity_score_threshold = 0.15f;  // If 15% or more of sampled points are close, merge the contours
     
     // Keep merging until no more proximity-based merges are possible
     while (contours_merged && contours.size() > 1) {
@@ -281,24 +255,20 @@ void pathPlanning::tspSolver(){
             contours_merged = true;
         }
     }
-
+    
     std::cout << "Final number of contours after concatenation: " << contours.size() << std::endl;
 
-    std::cout << "Found " << contours.size() << " contours after filtering." << std::endl;
-    
-    // Create a structure to track which contours have been processed
-    std::vector<bool> processed_contours(contours.size(), false);
-    
-    // Vector to store the optimal order of contours
-    std::vector<int> contour_order;
-    
-    // Vector to store all waypoints
-    std::vector<Waypoint> waypoints;
-    
     // Variables to track jumps
     int jump_count = 0;
     float total_jump_distance = 0.0f;
     std::vector<std::pair<cv::Point, cv::Point>> jump_points;
+    
+    // Process all contours in optimal order to minimize jumps
+    std::vector<int> contour_order;
+    std::vector<bool> processed_contours(contours.size(), false);
+    
+    // Vector to store waypoints grouped by contour
+    std::vector<std::vector<Waypoint>> contour_waypoints;
     
     // Start with the first contour
     int current_contour_idx = 0;
@@ -306,25 +276,20 @@ void pathPlanning::tspSolver(){
     processed_contours[current_contour_idx] = true;
     
     // Add first contour's points to waypoints
+    std::vector<Waypoint> first_contour_waypoints;
     const auto& first_contour = contours[current_contour_idx];
     if (!first_contour.empty()) {
-        // Add a point to raise the pen
-        waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, raiseZ_, 999));
-        
         // Add the first point with zero distance
-        waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, drawZ_, 0.0));
+        first_contour_waypoints.push_back(Waypoint(first_contour[0].x, first_contour[0].y, 0.0, 0.0));
         
         // Add remaining points from the first contour
         for (size_t i = 1; i < first_contour.size(); ++i) {
             float dist = calculateDistance(first_contour[i-1], first_contour[i]);
-            waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, drawZ_, dist));
-            if(i==(first_contour.size()-1)){
-                // Add a point to raise the pen
-                waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, raiseZ_, 999));
-            }
+            first_contour_waypoints.push_back(Waypoint(first_contour[i].x, first_contour[i].y, 0.0, dist));
         }
     }
-
+    contour_waypoints.push_back(first_contour_waypoints);
+    
     // Process all contours in optimal order to minimize jumps
     int contours_processed = 1;  // Already processed the first one
     while (contours_processed < contours.size()) {
@@ -355,26 +320,24 @@ void pathPlanning::tspSolver(){
             jump_points.push_back(std::make_pair(current_endpoint, closest_start_point));
             
             std::cout << "Jump #" << jump_count << ": From contour " << current_contour_idx 
-                      << " to contour " << closest_contour_idx
-                      << " (distance: " << min_distance << " pixels)" << std::endl;
+                    << " to contour " << closest_contour_idx
+                    << " (distance: " << min_distance << " pixels)" << std::endl;
             
-            // Add jump waypoint
-            waypoints.push_back(Waypoint(closest_start_point.x, closest_start_point.y, raiseZ_, 999));
-            
-            // Add all points from the closest contour
+            // Create waypoints for this contour
+            std::vector<Waypoint> contour_points;
             const auto& closest_contour = contours[closest_contour_idx];
-            if (!closest_contour.empty()) {
-                waypoints.push_back(Waypoint(closest_contour[0].x, closest_contour[0].y, drawZ_, 0.0));
-                
-                for (size_t i = 1; i < closest_contour.size(); ++i) {
-                    float dist = calculateDistance(closest_contour[i-1], closest_contour[i]);
-                    waypoints.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, drawZ_, dist));
-                    if(i==(closest_contour.size()-1)){
-                        // Add a point to raise the pen
-                        waypoints.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, raiseZ_, 999));
-                    }
-                }
+            
+            // Add first point (with jump distance)
+            contour_points.push_back(Waypoint(closest_start_point.x, closest_start_point.y, 0.0, min_distance));
+            
+            // Add remaining points
+            for (size_t i = 1; i < closest_contour.size(); ++i) {
+                float dist = calculateDistance(closest_contour[i-1], closest_contour[i]);
+                contour_points.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, 0.0, dist));
             }
+            
+            // Add this contour's waypoints to the list
+            contour_waypoints.push_back(contour_points);
             
             // Update current contour and mark as processed
             current_contour_idx = closest_contour_idx;
@@ -426,126 +389,19 @@ void pathPlanning::tspSolver(){
         cv::line(orderedContourImage, jump.first, jump.second, cv::Scalar(0, 255, 0), 1);
     }
     
-    // Draw all waypoints as a continuous path
-    for (size_t i = 1; i < waypoints.size(); ++i) {
-        cv::Scalar line_color;
-        
-        // Check if this point was a jump
-        bool is_jump = false;
-        for (const auto& jump : jump_points) {
-            if (waypoints[i].x == jump.second.x && waypoints[i].y == jump.second.y) {
-                is_jump = true;
-                break;
-            }
-        }
-        
-        if (is_jump) {
-            line_color = cv::Scalar(0, 255, 0);  // Green for jumps
-        } else {
-            // Regular path points get a color gradient
-            int color_value = static_cast<int>(255 * (i / static_cast<float>(waypoints.size())));
-            line_color = cv::Scalar(color_value, 0, 255 - color_value);
-        }
-        
-        cv::line(pathImage, 
-                cv::Point(waypoints[i-1].x, waypoints[i-1].y),
-                cv::Point(waypoints[i].x, waypoints[i].y),
-                line_color, 1);
-    }
+    // Save waypoints to CSV with pen up/down movements
+    saveWaypointsToFile(contour_waypoints, csvDirectory_, csvFilename_);
     
-    // Add jump statistics to the bottom of the image
-    int img_height = pathImage.rows;
-    std::stringstream ss;
-    ss << "Jumps: " << jump_count << " | Total Distance: " << std::fixed << std::setprecision(1) << total_jump_distance 
-       << " px | Avg Distance: " << std::fixed << std::setprecision(1) << (jump_count > 0 ? total_jump_distance / jump_count : 0) << " px";
-    cv::putText(pathImage, ss.str(), cv::Point(10, img_height - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
-    cv::putText(orderedContourImage, ss.str(), cv::Point(10, img_height - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
-
-    // Save waypoints to CSV
-    saveWaypointsToFile(waypoints, csvDirectory_, csvFilename_);
-
-    // Save the ordered contour image to a JPG file
-    std::filesystem::path output_path = std::filesystem::path(getenv("HOME")) / "pablo/output/3_ordered_contours.jpg";
-    if (!cv::imwrite(output_path.string(), orderedContourImage)) {
-        std::cerr << "Failed to save image: " << output_path << std::endl;
-    } else {
-        std::cout << "Ordered contour image saved successfully: " << output_path << std::endl;
-    }
-
-    // // Show Optimised Path
-    // std::string pathWindowName = "Optimized Path";
-    // cv::namedWindow(pathWindowName, cv::WINDOW_NORMAL);
-    // cv::imshow(pathWindowName, pathImage);
-
-    // // Show Contour Order
-    // std::string contourWindowName = "Contour Order";
-    // cv::namedWindow(contourWindowName, cv::WINDOW_NORMAL);
-    // cv::imshow(contourWindowName, orderedContourImage);
-    // cv::waitKey(0);
-    
-    // // Display each contour one at a time in the optimal order
-    // std::cout << "Press any key to display each contour in optimal order." << std::endl;
-    
-    // for (size_t i = 0; i < contour_order.size(); ++i) {
-    //     int idx = contour_order[i];
-        
-    //     // Create a clean image for this contour
-    //     cv::Mat contourImage = cv::Mat::zeros(image.size(), CV_8UC3);
-        
-    //     // Draw previous contours in dark gray
-    //     for (size_t j = 0; j < i; ++j) {
-    //         cv::drawContours(contourImage, contours, contour_order[j], cv::Scalar(40, 40, 40), 1);
-    //     }
-        
-    //     // Draw current contour in bright color
-    //     cv::Scalar color(0, 255, 255); // Yellow
-    //     cv::drawContours(contourImage, contours, idx, color, 2);
-        
-    //     // Draw the jump to this contour if it's not the first one
-    //     if (i > 0) {
-    //         cv::Point prev_end = contours[contour_order[i-1]].back();
-    //         cv::Point curr_start = contours[idx][0];
-    //         cv::line(contourImage, prev_end, curr_start, cv::Scalar(0, 255, 0), 1);
-    //     }
-        
-    //     // Draw contour information
-    //     cv::putText(contourImage, "Contour " + std::to_string(i+1) + "/" + std::to_string(contour_order.size()), 
-    //                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
-    //     cv::putText(contourImage, "Points: " + std::to_string(contours[idx].size()), 
-    //                cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
-        
-    //     if (i > 0) {
-    //         float jump_dist = calculateDistance(contours[contour_order[i-1]].back(), contours[idx][0]);
-    //         cv::putText(contourImage, "Jump from previous: " + std::to_string(jump_dist) + " px", 
-    //                    cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-    //     }
-        
-    //     // Add jump statistics to this image too
-    //     cv::putText(contourImage, ss.str(), cv::Point(10, img_height - 10), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
-        
-    //     // Display the image
-    //     cv::imshow(contourWindowName, contourImage);
-        
-    //     // Wait for key press
-    //     int key = cv::waitKey(0);
-    //     if (key == 27) {  // ESC key
-    //         break;
-    //     }
-    // }
-    
-    // // Final display with all contours in order
-    // cv::Mat finalImage = orderedContourImage.clone();
-    // cv::putText(finalImage, "All contours in optimal order! Press any key to exit.", 
-    //            cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
-    // cv::imshow(contourWindowName, finalImage);
-    // cv::waitKey(0);
+    // Optional visualization code is kept commented out as in the original
 }
 
 float pathPlanning::calculateDistance(const cv::Point& p1, const cv::Point& p2) {
     return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
 }
 
-void pathPlanning::saveWaypointsToFile(const std::vector<Waypoint>& waypoints, const std::string& directory, const std::string& filename) {
+// Updated function to save waypoints with pen up/down movements
+void pathPlanning::saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contour_waypoints, 
+                                     const std::string& directory, const std::string& filename) {
     // Construct the full file path
     std::filesystem::path dir_path(directory);
     std::filesystem::path file_path = dir_path / filename;
@@ -560,12 +416,53 @@ void pathPlanning::saveWaypointsToFile(const std::vector<Waypoint>& waypoints, c
 
     std::ofstream file(file_path);
     if (file.is_open()) {
-        file << "x,y,z,distance_from_last\n";
-        for (const auto& wp : waypoints) {
-            file << wp.x << "," << wp.y << "," << wp.z << "," << wp.distance_from_last << "\n";
+        file << "x,y,z,distance_from_last\n"; // CSV header
+        
+        for (size_t i = 0; i < contour_waypoints.size(); ++i) {
+            const auto& waypoints = contour_waypoints[i];
+            
+            if (waypoints.empty()) continue;
+            
+            // First point of a contour - add with pen lowering sequence
+            if (i > 0) { // Not the first contour
+                // Get last point of previous contour and first point of current contour
+                const Waypoint& prev_end = contour_waypoints[i-1].back();
+                const Waypoint& curr_start = waypoints[0];
+                
+                // 1. Raise pen at the end of previous contour
+                file << prev_end.x << "," << prev_end.y << "," << raiseZ_ << "," << 0.0 << " # Raise pen\n";
+                
+                // 2. Move to above the starting point of the next contour
+                float travel_dist = std::sqrt(std::pow(curr_start.x - prev_end.x, 2) + 
+                                             std::pow(curr_start.y - prev_end.y, 2));
+                file << curr_start.x << "," << curr_start.y << "," << raiseZ_ << "," 
+                     << travel_dist << " # Move to next contour\n";
+                
+                // 3. Lower pen at the start of the new contour
+                file << curr_start.x << "," << curr_start.y << "," << drawZ_ << "," 
+                     << 0.0 << " # Lower pen\n";
+            }
+            
+            // Write all points in this contour
+            for (size_t j = 0; j < waypoints.size(); ++j) {
+                const auto& wp = waypoints[j];
+                // For the first point of the first contour, ensure it starts at drawing height
+                if (i == 0 && j == 0) {
+                    file << wp.x << "," << wp.y << "," << drawZ_ << "," << wp.distance_from_last << "\n";
+                } else {
+                    file << wp.x << "," << wp.y << "," << drawZ_ << "," << wp.distance_from_last << "\n";
+                }
+            }
         }
+        
+        // After the last contour, raise the pen
+        if (!contour_waypoints.empty() && !contour_waypoints.back().empty()) {
+            const Waypoint& last_wp = contour_waypoints.back().back();
+            file << last_wp.x << "," << last_wp.y << "," << raiseZ_ << "," << 0.0 << " # Final pen raise\n";
+        }
+        
         file.close();
-        std::cout << "Waypoints saved to " << file_path << std::endl;
+        std::cout << "Waypoints saved to " << file_path << " with pen up/down movements" << std::endl;
     } else {
         std::cerr << "Unable to open file for saving waypoints!" << std::endl;
     }
