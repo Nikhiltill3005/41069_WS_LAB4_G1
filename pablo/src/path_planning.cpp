@@ -11,7 +11,12 @@ pathPlanning::pathPlanning() : Node("path_planning") {
 
     // Set the height to raise the pen
     penHeight_ = 640; // 640/4000 = 0.16m = 160mm
+<<<<<<< HEAD
     canvasHeight_ = 24; // 24/4000 = 0.006m = 6mm
+=======
+    canvasHeight_ = 45; // 24/4000 = 0.006m = 6mm WITHIN( 40-45) optimal range
+    raiseZ_ = penHeight_ + 100; // 100/4000 = 0.025m = 25mm
+>>>>>>> 52c8457 ("WE DID IT")
     drawZ_ = canvasHeight_ + penHeight_; // 664/4000 = 0.166m = 166mm
     raiseZ_ = drawZ_ + 100; // 100/4000 = 0.025m = 25mm
 }
