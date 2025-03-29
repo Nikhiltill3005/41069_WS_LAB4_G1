@@ -40,17 +40,28 @@
             gap: 10px; /* Space between buttons */
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            margin-top: 20px;
-            cursor: pointer;
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-top: 20px;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;
+        }
+        /* Blue button style */
+        .blue-button {
             background-color: #007BFF;
             color: white;
-            border: none;
-            border-radius: 5px;
         }
-        button:hover {
+        .blue-button:hover {
             background-color: #0056b3;
+        }
+        /* Green button style */
+        .green-button {
+            background-color: #28a745;
+            color: white;
+        }
+        .green-button:hover {
+            background-color: #218838;
         }
     </style>
 </head>
@@ -93,8 +104,10 @@
         </div>
 
         <div class="button-container">
-            <button onclick="capturePhoto()">Capture Photo</button>
-            <button onclick="startDrawing()">Start Drawing</button>
+            <button class="blue-button" onclick="capturePhoto()">Capture Photo</button>
+            <button class="blue-button" onclick="processPhoto()">Create Drawing</button>
+            <button class="green-button" onclick="startDrawing()">Start Drawing</button>
+            <button class="blue-button" onclick="openImageInNewTab('sketch-img')">Download Sketch</button>
         </div>
 
         <!-- Row 4 -->
@@ -136,11 +149,35 @@
                 .catch(error => console.error("Error:", error));
         }
 
+        function processPhoto() {
+            fetch("http://localhost:5000/process", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    setTimeout(refreshImages, 2000); // Delay refresh to ensure processing is done
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
         function startDrawing() {
             fetch("http://localhost:5000/draw", { method: "POST" })
                 .then(response => response.text())
                 .then(data => alert(data))
                 .catch(error => console.error("Error:", error));
+        }
+
+        function downloadImage(imageId) {
+            const image = document.getElementById(imageId);
+            const link = document.createElement('a');
+            link.href = image.src; // Use the image's `src` as the download URL
+            link.download = 'sketch.jpg'; // Set the default filename
+            link.click(); // Trigger the download
+        }       
+
+        function openImageInNewTab(imageId) {
+            const image = document.getElementById(imageId);
+            const newTab = window.open(); // Open a new tab
+            newTab.document.body.innerHTML = `<img src="${image.src}" style="max-width: 100%; height: auto;">`; // Display the image in the new tab
         }
     </script>
     

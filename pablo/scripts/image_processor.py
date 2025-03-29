@@ -35,7 +35,7 @@ class ImageProcessor(Node):
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
-        self.cap = cv2.VideoCapture(0) # 0 for default camera, 1/2 for external camera
+        self.cap = cv2.VideoCapture(2) # 0 for default camera, 1/2 for external camera
         self.current_frame = None
 
         # Start Flask server in a separate thread
@@ -76,24 +76,49 @@ class ImageProcessor(Node):
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
+    #---------- Image Capture ----------
+    def capture_image(self):
+        """ Captures an image from the webcam and saves it to the output directory. """
+        self.delete_old_files() # Delete old images
+        success, frame = self.cap.read() # Capture a frame from the webcam
+        if not success:
+            return jsonify({"error": "Failed to capture image!"}), 500
+        else:
+            # Save the captured image
+            image_path = os.path.join(self.output_dir, "0_webcam.jpg")
+            desired_width = 960
+            aspect_ratio = frame.shape[1] / frame.shape[0]
+            new_height = int(desired_width / aspect_ratio)
+            dim = (desired_width, new_height)
+            image = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+            cv2.imwrite(image_path, image)
+            self.get_logger().info(f'Captured Image saved to: {image_path}')
+            return jsonify({"message": "Image captured successfully!"}), 200
+
     #---------- Image Processing ----------
     def process_image(self):
-        """ Processes the captured image (removes background & applies sketch effect). """
-        if self.current_frame is None:
-            return jsonify({"error": "No image captured yet!"}), 400
+        # """ Processes the captured image (removes background & applies sketch effect). """
+        # if self.current_frame is None:
+        #     return jsonify({"error": "No image captured yet!"}), 400
         
-        # Scale down image to 960x720px
-        image = self.current_frame.copy() # Original is 640x480px
-        desired_width = 960
-        aspect_ratio = image.shape[1] / image.shape[0]
-        new_height = int(desired_width / aspect_ratio)
-        dim = (desired_width, new_height)
-        image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+        # # Scale down image to 960x720px
+        # image = self.current_frame.copy() # Original is 640x480px
+        # desired_width = 960
+        # aspect_ratio = image.shape[1] / image.shape[0]
+        # new_height = int(desired_width / aspect_ratio)
+        # dim = (desired_width, new_height)
+        # image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
-        # Save webcam image
-        webcam_image_path = os.path.join(self.output_dir, "0_webcam.jpg")
-        cv2.imwrite(webcam_image_path, image)
-        self.get_logger().info(f'Webcam Image saved to: {webcam_image_path}')
+        # # Save webcam image
+        # webcam_image_path = os.path.join(self.output_dir, "0_webcam.jpg")
+        # cv2.imwrite(webcam_image_path, image)
+        # self.get_logger().info(f'Webcam Image saved to: {webcam_image_path}')
+
+        # Save the captured image 
+        image = cv2.imread(os.path.join(self.output_dir, "0_webcam.jpg"))
+        if image is None:
+            self.get_logger().error('No image captured yet!')
+            return jsonify({"error": "No image captured yet!"}), 400
 
         # Remove background using rembg
         no_bg_face = remove(image)
@@ -181,7 +206,11 @@ def video_feed():
     return Response(image_processor.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/capture', methods=['POST'])
-def capture_image():
+def capture_frame():
+    return image_processor.capture_image()
+
+@app.route('/process', methods=['POST'])
+def process_frame():
     return image_processor.process_image()
 
 @app.route('/image/<filename>')
