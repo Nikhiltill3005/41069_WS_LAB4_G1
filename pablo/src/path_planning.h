@@ -26,17 +26,10 @@ public:
 private:
     void imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg);
     float calculateDistance(const cv::Point& p1, const cv::Point& p2);
-<<<<<<< HEAD
     void saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contourwaypoints, 
         const std::string& directory, const std::string& filename);
         
     std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
-=======
-    void saveWaypointsToFile(const std::vector<Waypoint>& waypoints, const std::string& directory, const std::string& filename);
-
-    // std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
-    std::string csvDirectory_ = "/home/niku/git/41069_WS_LAB4_G1/pablo/output";
->>>>>>> 52c8457 ("WE DID IT")
     std::string csvFilename_ = "waypoints.csv";
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imageProcessorSub_;
