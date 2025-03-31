@@ -86,35 +86,32 @@ class ImageProcessor(Node):
         else:
             # Save the captured image
             image_path = os.path.join(self.output_dir, "0_webcam.jpg")
-            desired_width = 960
-            aspect_ratio = frame.shape[1] / frame.shape[0]
-            new_height = int(desired_width / aspect_ratio)
-            dim = (desired_width, new_height)
-            image = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
-            cv2.imwrite(image_path, image)
+            cv2.imwrite(image_path, frame)
+            self.resize_image()
             self.get_logger().info(f'Captured Image saved to: {image_path}')
             return jsonify({"message": "Image captured successfully!"}), 200
 
+    def resize_image(self):
+        image_path = os.path.join(self.output_dir, "0_webcam.jpg")
+        image = cv2.imread(image_path)
+        if image is None:
+            self.get_logger().error('No image captured yet!')
+            return jsonify({"error": "No image captured yet!"}), 400
+        
+        # Resize the image
+        desired_width = 960
+        aspect_ratio = 4 / 3
+        new_height = int(desired_width / aspect_ratio)
+        dim = (desired_width, new_height)
+        image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+        cv2.imwrite(image_path, image)
+        self.get_logger().info(f'Captured Image saved to: {image_path}')
+        return jsonify({"message": "Image captured successfully!"}), 200
+
+
     #---------- Image Processing ----------
     def process_image(self):
-        # """ Processes the captured image (removes background & applies sketch effect). """
-        # if self.current_frame is None:
-        #     return jsonify({"error": "No image captured yet!"}), 400
-        
-        # # Scale down image to 960x720px
-        # image = self.current_frame.copy() # Original is 640x480px
-        # desired_width = 960
-        # aspect_ratio = image.shape[1] / image.shape[0]
-        # new_height = int(desired_width / aspect_ratio)
-        # dim = (desired_width, new_height)
-        # image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
-
-        # # Save webcam image
-        # webcam_image_path = os.path.join(self.output_dir, "0_webcam.jpg")
-        # cv2.imwrite(webcam_image_path, image)
-        # self.get_logger().info(f'Webcam Image saved to: {webcam_image_path}')
-
-        # Save the captured image 
+        # Read the captured image 
         image = cv2.imread(os.path.join(self.output_dir, "0_webcam.jpg"))
         if image is None:
             self.get_logger().error('No image captured yet!')
@@ -201,6 +198,9 @@ class ImageProcessor(Node):
         return "Processing complete!", 200
 
 # Flask Routes
+OUTPUT_FOLDER = "output"
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
 @app.route('/video_feed')
 def video_feed():
     return Response(image_processor.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -224,6 +224,23 @@ def start_drawing():
     msg.data = True
     image_processor.publisherStarter_.publish(msg)
     return jsonify({"message": "Drawing started!"}), 200
+
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    image_processor.delete_old_files()
+    if 'image' not in request.files:
+        return "No file part", 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return "No selected file", 400
+
+    # Save the file to the output folder
+    new_filename = "0_webcam.jpg"
+    file_path = os.path.join(image_processor.output_dir, new_filename)
+    file.save(file_path)
+    image_processor.resize_image()
+    return f"File uploaded successfully: {new_filename}", 200
 
 def main(args=None):
     rclpy.init(args=args)

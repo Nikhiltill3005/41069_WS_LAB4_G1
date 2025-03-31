@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pablo - Selfie Drawing Robot</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1.1.0/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1.0.1/build/ros3d.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,7 +15,7 @@
         .grid-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            grid-gap: 10px 5px; /* Set row gap to 10px and column gap to 5px */
+            grid-gap: 5px 5px; /* Set row gap to 10px and column gap to 5px */
             justify-items: center; /* Align items to the start (left) */
             align-items: center;
         }
@@ -77,8 +79,8 @@
             <img id="original-img" src="http://localhost:5000/image/0_webcam.jpg" alt="">
         </div>
 
-        <div class="rectangular-box">
-            <!-- <iframe id="rviz-simulator" src="http://localhost:5000/rviz_stream" width="480" height="360" frameborder="0" allowfullscreen></iframe> -->
+        <div class="rectangular-box" id="viewer">
+            <iframe id="rviz-simulator" src="http://localhost:5000/rviz_stream" width="480" height="360" frameborder="0" allowfullscreen></iframe>
         </div>
 
         <!-- Row 2 -->
@@ -179,6 +181,49 @@
             const newTab = window.open(); // Open a new tab
             newTab.document.body.innerHTML = `<img src="${image.src}" style="max-width: 100%; height: auto;">`; // Display the image in the new tab
         }
+
+        // RVIZ Simlator
+        // Connect to ROSBridge WebSocket
+        var ros = new ROSLIB.Ros({
+            url : 'ws://localhost:9090'  // Ensure rosbridge is running
+        });
+
+        ros.on('connection', function() {
+            console.log('Connected to ROSBridge');
+        });
+
+        ros.on('error', function(error) {
+            console.log('Error connecting to ROSBridge:', error);
+        });
+
+        ros.on('close', function() {
+            console.log('Connection to ROSBridge closed.');
+        });
+
+        // Create 3D Viewer
+        var viewer = new ROS3D.Viewer({
+            divID : 'viewer',
+            width : 480,
+            height : 360,
+            background : '#111'
+        });
+
+        // Connect TF client to listen to transform updates
+        var tfClient = new ROS3D.TFClient({
+            ros : ros,
+            fixedFrame : 'world',  // Change to your robot's fixed frame (e.g., "base_link")
+            angularThres : 0.01,
+            transThres : 0.01,
+            rate : 10.0
+        });
+
+        // Load URDF model of the robot
+        var urdfClient = new ROS3D.UrdfClient({
+            ros : ros,
+            tfClient : tfClient,
+            path : 'http://localhost:8000/', // Path to URDF files (You may need a simple HTTP server)
+            rootObject : viewer.scene
+        });
     </script>
     
 </body>
