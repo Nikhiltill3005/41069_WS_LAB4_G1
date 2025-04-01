@@ -29,7 +29,8 @@ private:
     void saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contourwaypoints, 
         const std::string& directory, const std::string& filename);
         
-    std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
+    // std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
+    std::string csvDirectory_ = "/home/niku/git/41069_WS_LAB4_G1/pablo/output";
     std::string csvFilename_ = "waypoints.csv";
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imageProcessorSub_;

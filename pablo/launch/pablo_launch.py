@@ -83,12 +83,12 @@ def generate_launch_description():
         output='screen'
     )
     
-    # ur3e_control_node = Node(
-    #     package='pablo',
-    #     executable='ur3e_control',
-    #     name='ur3e_control',
-    #     output='screen'
-    # )
+    ur3e_control_node = Node(
+        package='pablo',
+        executable='ur3e_control',
+        name='ur3e_control',
+        output='screen'
+    )
     
     # Log info message
     log_info = LogInfo(
@@ -107,11 +107,11 @@ def generate_launch_description():
         log_info,
         
         # Launch files
-        ur_control_launch,
-        ur_moveit_launch,
+        # ur_control_launch,
+        # ur_moveit_launch,
         
         # Pablo nodes
         image_processor_node,
         path_planning_node
-        # ur3e_control_node
+        ur3e_control_node
     ])
