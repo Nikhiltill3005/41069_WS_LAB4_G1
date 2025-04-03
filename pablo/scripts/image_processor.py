@@ -108,7 +108,6 @@ class ImageProcessor(Node):
         self.get_logger().info(f'Captured Image saved to: {image_path}')
         return jsonify({"message": "Image captured successfully!"}), 200
 
-
     #---------- Image Processing ----------
     def process_image(self):
         # Read the captured image 
@@ -185,8 +184,23 @@ class ImageProcessor(Node):
 
         # Save final sketch
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
+
+        # Add a border to the sketch
+        border_thickness = 1  # Thickness of the border in pixels
+        border_color = (255, 255, 255)  # White border
+        final_sketch_with_border = cv2.copyMakeBorder(
+            final_sketch,
+            top=border_thickness,
+            bottom=border_thickness,
+            left=border_thickness,
+            right=border_thickness,
+            borderType=cv2.BORDER_CONSTANT,
+            value=border_color
+        )
+
+        # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
-        cv2.imwrite(sketch_image_path, final_sketch)
+        cv2.imwrite(sketch_image_path, final_sketch_with_border)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
         # Publish message

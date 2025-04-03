@@ -36,7 +36,7 @@ void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr m
 
 void pathPlanning::tspSolver(){
     // Load the image
-    std::filesystem::path image_path = std::filesystem::path(getenv("HOME")) / "pablo/output/2_sketch.jpg";
+    std::filesystem::path image_path = std::filesystem::path(getenv("HOME")) / "/git/pablo/output/2_sketch.jpg";
 
     // Check if the file exists
     if (!std::filesystem::exists(image_path)) {
