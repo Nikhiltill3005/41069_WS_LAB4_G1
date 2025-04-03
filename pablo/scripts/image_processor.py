@@ -200,7 +200,7 @@ class ImageProcessor(Node):
 
         # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
-        cv2.imwrite(sketch_image_path, final_sketch_with_border)
+        cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
         # Publish message
