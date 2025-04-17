@@ -12,8 +12,7 @@ move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
     planningComplete_ = false;
     home_position(); // Initialize robot to home position
 
-    // Create both marker and pointcloud publishers
-    marker_pub = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 1000);
+    // Create point cloud publishers
     point_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("waypoints_cloud", 10);
 
     // Create subscribers

@@ -23,7 +23,7 @@ def generate_launch_description():
     
     launch_rviz_arg = DeclareLaunchArgument(
         'launch_rviz',
-        default_value='true',
+        default_value='false',
         description='Launch RViz if true'
     )
     
@@ -107,11 +107,12 @@ def generate_launch_description():
         log_info,
         
         # Launch files
-        # ur_control_launch,
-        # ur_moveit_launch,
+        ur_moveit_launch,
+        ur_control_launch
+        
         
         # Pablo nodes
-        image_processor_node,
-        path_planning_node
-        ur3e_control_node
+        # image_processor_node,
+        # path_planning_node
+        # ur3e_control_node
     ])
