@@ -8,6 +8,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <geometry_msgs/msg/pose.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -64,6 +65,12 @@ class ur3eControl : public rclcpp::Node {
      * @brief Waits for a trigger from the pablo GUI, that verify that the UR3e is going to start drawing.
      */   
         void executeDrawing();
+
+    /**
+     * @breif Creating collision object
+     */
+
+     void avoidance();
     
     private:
     /**
