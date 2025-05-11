@@ -108,11 +108,11 @@ def generate_launch_description():
         
         # Launch files
         ur_moveit_launch,
-        ur_control_launch
+        ur_control_launch,
         
         
         # Pablo nodes
-        # image_processor_node,
-        # path_planning_node
+        image_processor_node,
+        path_planning_node
         # ur3e_control_node
     ])

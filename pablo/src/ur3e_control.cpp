@@ -10,7 +10,6 @@ move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
     move_group_interface_.setMaxAccelerationScalingFactor(5.0);  // Full acceleration
     start_ = false;
     planningComplete_ = false;
-    avoidance();
     home_position(); // Initialize robot to home position
 
     // Create point cloud publishers
