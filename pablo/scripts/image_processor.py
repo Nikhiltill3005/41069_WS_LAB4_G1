@@ -89,7 +89,7 @@ class ImageProcessor(Node):
             cv2.imwrite(image_path, frame)
             self.resize_image()
             self.get_logger().info(f'Captured Image saved to: {image_path}')
-            return jsonify({"message": "Image captured successfully!"}), 200
+            return "Image captured successfully!", 200
 
     def resize_image(self):
         image_path = os.path.join(self.output_dir, "0_webcam.jpg")
