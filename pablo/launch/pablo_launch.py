@@ -1,23 +1,24 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration, TextSubstitution, EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 import os
 
+
 def generate_launch_description():
     # Launch arguments
     robot_ip_arg = DeclareLaunchArgument(
         'robot_ip',
-        default_value='yyy.yyy.yyy.yyy',
-        description='IP address of the UR3e robot'
+        default_value=EnvironmentVariable('ROBOT_IP', default_value='yyy.yyy.yyy.yyy'),
+        description='IP address of the UR3e robot. Set via command line or ROBOT_IP environment variable'
     )
     
     use_fake_hardware_arg = DeclareLaunchArgument(
         'use_fake_hardware',
-        default_value='true',
+        default_value=EnvironmentVariable('FAKE_HARDWARE', default_value='true'),
         description='Use fake hardware if true'
     )
     
@@ -116,3 +117,6 @@ def generate_launch_description():
         path_planning_node
         # ur3e_control_node
     ])
+    
+    
+    
