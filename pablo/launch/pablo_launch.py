@@ -99,7 +99,7 @@ def generate_launch_description():
     
     # Launch HTML website
     launch_pablo_website = ExecuteProcess(
-        cmd=['xdg-open', '/home/niku/git/41069_WS_LAB4_G1/pablo/web/pablo2.html'],
+        cmd=['xdg-open', '/home/niku/git/41069_WS_LAB4_G1/pablo/web/pablo3.html'],
         output='screen',
         condition=IfCondition(launch_website)
     )
