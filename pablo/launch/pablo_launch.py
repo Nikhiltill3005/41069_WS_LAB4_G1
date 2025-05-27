@@ -1,12 +1,11 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, ExecuteProcess
 from launch.substitutions import LaunchConfiguration, TextSubstitution, EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 import os
-
 
 def generate_launch_description():
     # Launch arguments
@@ -33,12 +32,19 @@ def generate_launch_description():
         default_value='scaled_joint_trajectory_controller',
         description='Initial joint controller to start'
     )
-
+    
+    launch_website_arg = DeclareLaunchArgument(
+        'launch_website',
+        default_value='true',
+        description='Launch Pablo website if true'
+    )
+    
     # Create launch configurations
     robot_ip = LaunchConfiguration('robot_ip')
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
     launch_rviz = LaunchConfiguration('launch_rviz')
     initial_joint_controller = LaunchConfiguration('initial_joint_controller')
+    launch_website = LaunchConfiguration('launch_website')
     
     # Get package share directories
     ur_robot_driver_dir = get_package_share_directory('ur_robot_driver')
@@ -91,9 +97,16 @@ def generate_launch_description():
         output='screen'
     )
     
+    # Launch HTML website
+    launch_pablo_website = ExecuteProcess(
+        cmd=['xdg-open', '/home/niku/git/41069_WS_LAB4_G1/pablo/web/pablo2.html'],
+        output='screen',
+        condition=IfCondition(launch_website)
+    )
+    
     # Log info message
     log_info = LogInfo(
-        msg=['Launching UR3e with Pablo nodes']
+        msg=['Launching UR3e with Pablo nodes and website']
     )
     
     # Return the launch description
@@ -103,20 +116,16 @@ def generate_launch_description():
         use_fake_hardware_arg,
         launch_rviz_arg,
         initial_controller_arg,
-        
+        launch_website_arg,
         # Log info
         log_info,
-        
         # Launch files
         ur_moveit_launch,
         ur_control_launch,
-        
-        
         # Pablo nodes
         image_processor_node,
-        path_planning_node
-        # ur3e_control_node
+        path_planning_node,
+        # ur3e_control_node (uncommented if needed)
+        # Launch website
+        launch_pablo_website
     ])
-    
-    
-    

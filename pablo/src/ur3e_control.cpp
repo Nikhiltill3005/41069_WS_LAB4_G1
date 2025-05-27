@@ -6,8 +6,8 @@ move_group_interface_(std::shared_ptr<rclcpp::Node>(this), "ur_manipulator") {
     RCLCPP_INFO(this->get_logger(), "UR3e Move Node Started");
     
     // Set parameters
-    move_group_interface_.setMaxVelocityScalingFactor(5.0);  // Full velocity
-    move_group_interface_.setMaxAccelerationScalingFactor(5.0);  // Full acceleration
+    move_group_interface_.setMaxVelocityScalingFactor(1.0);  // Full velocity
+    move_group_interface_.setMaxAccelerationScalingFactor(1.0);  // Full acceleration
     start_ = false;
     planningComplete_ = false;
     home_position(); // Initialize robot to home position
@@ -153,7 +153,7 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
         rt.setRobotTrajectoryMsg(*move_group_interface_.getCurrentState(), trajectory);
         
         trajectory_processing::IterativeParabolicTimeParameterization iptp;
-        iptp.computeTimeStamps(rt, 0.95, 2); // velocity and acceleration scaling
+        iptp.computeTimeStamps(rt, 1.0, 1.0); // velocity and acceleration scaling
         
         rt.getRobotTrajectoryMsg(trajectory);
         

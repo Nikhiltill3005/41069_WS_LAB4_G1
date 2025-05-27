@@ -116,6 +116,10 @@ class ImageProcessor(Node):
             self.get_logger().error('No image captured yet!')
             return jsonify({"error": "No image captured yet!"}), 400
 
+        # Save original for reference
+        original_image_path = os.path.join(self.output_dir, "0_original.jpg")
+        cv2.imwrite(original_image_path, image)
+
         # Remove background using rembg
         no_bg_face = remove(image)
         no_bg_face_bgr = cv2.cvtColor(no_bg_face, cv2.COLOR_RGB2BGR)
@@ -127,37 +131,118 @@ class ImageProcessor(Node):
             self.get_logger().error('No face detected!')
             return jsonify({"error": "No face detected! Retake Image"}), 400
 
+        # Save image with background removed
+        output_path_no_bg = os.path.join(self.output_dir, '1_no_background.jpg')
+        cv2.imwrite(output_path_no_bg, no_bg_face_bgr)
+        self.get_logger().info(f'Face with background removed saved to: {output_path_no_bg}')
+
+        # Create an alpha mask from the RGBA image
+        # This will help us isolate hair regions better
+        alpha_mask = no_bg_face[:, :, 3]
+        
+        # Extract face region to identify hair region
+        face_landmarks = None
         for face in faces:
             landmarks = self.predictor(gray_image, face)
+            face_landmarks = landmarks
+        
+        # Create a sketch with enhanced hair detail
+        sketch = self.create_enhanced_sketch(no_bg_face_bgr, gray_image, face_landmarks, alpha_mask)
+        
+        # Save the final sketch
+        sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
+        cv2.imwrite(sketch_image_path, sketch)
+        self.get_logger().info(f'Enhanced sketch with hair details saved to: {sketch_image_path}')
 
-        # Convert to grayscale for sketch effect
-        face_gray = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2GRAY)
-        output_path_gray = os.path.join(self.output_dir, '1_no_background.jpg')
-        cv2.imwrite(output_path_gray, face_gray)
-        self.get_logger().info(f'Face with background removed saved to: {output_path_gray}')
+        # Publish message
+        time.sleep(1)
+        msg = Bool()
+        msg.data = True
+        self.publisher_.publish(msg)
 
-        # Apply Blur
-        blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
-
-        # Detect edges using Canny
-        edges = cv2.Canny(blurred_face, 50, 150)
-
-        # Remove small contours (noise)
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        min_contour_area = 10  # Change this value based on small noise removal needs
-
-        mask = np.zeros_like(edges)
-        for cnt in contours:
-            if cv2.contourArea(cnt) > min_contour_area:
-                cv2.drawContours(mask, [cnt], -1, 255, 1)  # Set thickness to 1px
-
-        # Convert edges to 3 channels
-        edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-
-        # Draw landmark lines
-        for face in faces:
-            landmarks = self.predictor(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), face)
-
+        return "Processing complete!", 200
+    
+    def create_enhanced_sketch(self, image, gray_image, landmarks, alpha_mask):
+        """Creates an enhanced sketch with better hair detail capture"""
+        height, width = gray_image.shape[:2]
+        
+        # Create a hair mask using intensity thresholding and alpha channel
+        _, hair_mask = cv2.threshold(gray_image, 60, 255, cv2.THRESH_BINARY_INV)
+        
+        # Refine hair mask using alpha channel information
+        hair_mask = cv2.bitwise_and(hair_mask, alpha_mask)
+        
+        # Create a face region mask from landmarks
+        face_mask = np.zeros_like(gray_image)
+        if landmarks:
+            # Get face boundary points
+            points = []
+            for i in range(17):  # Jaw line
+                x, y = landmarks.part(i).x, landmarks.part(i).y
+                points.append([x, y])
+                
+            # Add forehead points (estimated from eyebrows)
+            left_eyebrow_x = landmarks.part(19).x
+            left_eyebrow_y = landmarks.part(19).y
+            right_eyebrow_x = landmarks.part(24).x
+            right_eyebrow_y = landmarks.part(24).y
+            
+            # Estimate forehead points (higher than eyebrows)
+            forehead_height = int((landmarks.part(8).y - landmarks.part(27).y) * 0.7)  # Proportional to face height
+            points.append([right_eyebrow_x, right_eyebrow_y - forehead_height])
+            points.append([left_eyebrow_x, left_eyebrow_y - forehead_height])
+            
+            # Convert to numpy array
+            points = np.array(points, dtype=np.int32)
+            cv2.fillPoly(face_mask, [points], 255)
+            
+            # Dilate the face mask to better separate face from hair
+            kernel = np.ones((5, 5), np.uint8)
+            face_mask = cv2.dilate(face_mask, kernel, iterations=2)
+        
+        # Create a hair region mask (outside face region but inside alpha)
+        hair_region = cv2.bitwise_and(alpha_mask, cv2.bitwise_not(face_mask))
+        
+        # Enhance hair region
+        # 1. Apply Bilateral Filter with parameters tuned for hair
+        hair_filtered = cv2.bilateralFilter(gray_image, 9, 25, 25)
+        
+        # 2. Apply adaptive thresholding to get more hair detail
+        adaptive_thresh = cv2.adaptiveThreshold(
+            hair_filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
+        )
+        
+        # 3. Apply Canny edge detection with parameters tuned for hair edges
+        hair_edges = cv2.Canny(hair_filtered, 30, 100)
+        
+        # Combine hair edges with the hair region mask
+        hair_detail = cv2.bitwise_and(hair_edges, hair_region)
+        
+        # Create face edges using standard edge detection 
+        face_blurred = cv2.bilateralFilter(gray_image, 9, 75, 75)
+        face_edges = cv2.Canny(face_blurred, 50, 150)
+        face_detail = cv2.bitwise_and(face_edges, face_mask)
+        
+        # Remove small contours (noise) from both hair and face edges
+        def clean_edges(edges, min_area=10):
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            mask = np.zeros_like(edges)
+            for cnt in contours:
+                if cv2.contourArea(cnt) > min_area:
+                    cv2.drawContours(mask, [cnt], -1, 255, 1)
+            return mask
+        
+        clean_hair_detail = clean_edges(hair_detail, min_area=5)  # Lower threshold for hair
+        clean_face_detail = clean_edges(face_detail, min_area=10)
+        
+        # Combine face and hair details
+        combined_sketch = cv2.bitwise_or(clean_face_detail, clean_hair_detail)
+        
+        # Convert to BGR for drawing landmarks
+        sketch_colored = cv2.cvtColor(combined_sketch, cv2.COLOR_GRAY2BGR)
+        
+        # Draw facial feature lines using landmarks
+        if landmarks:
             def draw_landmark_lines(image, landmarks, points, color=(255, 255, 255), thickness=1):
                 for i in range(len(points) - 1):
                     x1, y1 = landmarks.part(points[i]).x, landmarks.part(points[i]).y
@@ -173,18 +258,22 @@ class ImageProcessor(Node):
             }
 
             for feature in ["jaw", "nose"]:
-                draw_landmark_lines(edges_colored, landmarks, facial_features[feature])
+                draw_landmark_lines(sketch_colored, landmarks, facial_features[feature])
 
-            draw_landmark_lines(edges_colored, landmarks, list(range(17, 22)))
-            draw_landmark_lines(edges_colored, landmarks, list(range(22, 27)))
+            draw_landmark_lines(sketch_colored, landmarks, list(range(17, 22)))
+            draw_landmark_lines(sketch_colored, landmarks, list(range(22, 27)))
 
             for feature in ["eyes", "mouth"]:
                 for part in facial_features[feature]:
-                    draw_landmark_lines(edges_colored, landmarks, part)
-
-        # Save final sketch
-        final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
-
+                    draw_landmark_lines(sketch_colored, landmarks, part)
+        
+        # Final cleanup and enhancement
+        final_sketch = cv2.cvtColor(sketch_colored, cv2.COLOR_BGR2GRAY)
+        
+        # Add a subtle edge enhancement for hair detail
+        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+        final_sketch = cv2.filter2D(final_sketch, -1, kernel)
+        
         # Add a border to the sketch
         border_thickness = 1  # Thickness of the border in pixels
         border_color = (255, 255, 255)  # White border
@@ -197,19 +286,8 @@ class ImageProcessor(Node):
             borderType=cv2.BORDER_CONSTANT,
             value=border_color
         )
-
-        # Save the final sketch
-        sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
-        cv2.imwrite(sketch_image_path, final_sketch)
-        self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
-
-        # Publish message
-        time.sleep(1)
-        msg = Bool()
-        msg.data = True
-        self.publisher_.publish(msg)
-
-        return "Processing complete!", 200
+        
+        return final_sketch_with_border
 
 # Flask Routes
 OUTPUT_FOLDER = "output"
@@ -266,5 +344,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-

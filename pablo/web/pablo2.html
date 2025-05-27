@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pablo - Selfie Drawing Robot</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1.1.0/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1.0.1/build/ros3d.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 20px;
+            justify-items: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid #ddd;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .rectangular-box, #webcam-feed {
+            width: 320px;
+            height: 240px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .rectangular-box {
+            border: 3px solid #007BFF;
+            padding: 0px;
+            display: inline-block;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .rectangular-box:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        button {
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .blue-button {
+            background: linear-gradient(45deg, #007BFF, #0056b3);
+            color: white;
+        }
+        
+        .green-button {
+            background: linear-gradient(45deg, #28a745, #218838);
+            color: white;
+        }
+        
+        .red-button {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #333;
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.active {
+            background: #28a745;
+        }
+        
+        .status-indicator.processing {
+            background: #ffc107;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007BFF, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active {
+            background: #e7f3ff;
+            border-left: 4px solid #007BFF;
+        }
+        
+        .step.completed {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+        }
+        
+        .step-number {
+            background: #007BFF;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .step.completed .step-number {
+            background: #28a745;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007BFF;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007BFF;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        @media (max-width: 1024px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .rectangular-box {
+                width: 280px;
+                height: 210px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            .rectangular-box {
+                width: 300px;
+                height: 225px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 Pablo - AI Selfie Artist 🤖</h1>
+        <p class="subtitle">Turn your selfie into a masterpiece! Watch Pablo draw your portrait live.</p>
+    </div>
+
+    <div class="grid-container">
+        <!-- Row 1 -->
+        <div class="rectangular-box">
+            <div class="status-indicator" id="webcam-status"></div>
+            <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="Live Webcam Feed">
+        </div>
+
+        <div class="rectangular-box">
+            <div class="status-indicator" id="photo-status"></div>
+            <img id="original-img" src="http://localhost:5000/image/0_webcam.jpg" alt="Your Selfie">
+        </div>
+
+        <div class="rectangular-box">
+            <div class="status-indicator" id="robot-status"></div>
+            <div id="viewer-container" style="width: 100%; height: 100%; border-radius: 10px; overflow: hidden;">
+                <div id="viewer" style="width: 100%; height: 100%; background: #333;"></div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="label">📹 Live Camera Feed</div>
+        <div class="label">📸 Your Selfie</div>
+        <div class="label">🤖 Robot Simulator</div>
+
+        <!-- Row 3 -->
+        <div class="rectangular-box">
+            <div class="status-indicator" id="processed-status"></div>
+            <img id="no-bg-img" src="http://localhost:5000/image/1_no_background.jpg" alt="Background Removed">
+        </div>
+        
+        <div class="rectangular-box">
+            <div class="status-indicator" id="sketch-status"></div>
+            <img id="sketch-img" src="http://localhost:5000/image/2_sketch.jpg" alt="Your Sketch">
+        </div>
+
+        <div class="button-container">
+            <div class="countdown" id="countdown"></div>
+            <button class="blue-button" id="capture-btn" onclick="capturePhoto()">
+                📸 Capture Your Selfie
+            </button>
+            <button class="blue-button" id="process-btn" onclick="processPhoto()" disabled>
+                🎨 Create Your Sketch
+            </button>
+            <button class="green-button" id="draw-btn" onclick="startDrawing()" disabled>
+                ✏️ Start Drawing!
+            </button>
+            <button class="red-button" id="reset-btn" onclick="resetProcess()">
+                🔄 Start Over
+            </button>
+            <button class="blue-button" onclick="openImageInNewTab('sketch-img')">
+                💾 Download Your Art
+            </button>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="loading-spinner" id="loading-spinner"></div>
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="label">🚫 Background Removed</div>
+        <div class="label">✏️ Drawing Preview</div>
+        <div class="label">🎮 Controls</div>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 How to Use Pablo:</h3>
+        <div class="step" id="step1">
+            <div class="step-number">1</div>
+            <div>Position yourself in front of the camera and click "Capture Your Selfie"</div>
+        </div>
+        <div class="step" id="step2">
+            <div class="step-number">2</div>
+            <div>Wait for the AI to process your image and create a sketch</div>
+        </div>
+        <div class="step" id="step3">
+            <div class="step-number">3</div>
+            <div>Click "Start Drawing!" to watch Pablo create your masterpiece</div>
+        </div>
+        <div class="step" id="step4">
+            <div class="step-number">4</div>
+            <div>Download your finished artwork and share it with friends!</div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let isProcessing = false;
+
+        function updateStep(step) {
+            // Remove active class from all steps
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            // Add completed class to previous steps
+            for (let i = 1; i < step; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            // Add active class to current step
+            if (step <= 4) {
+                document.getElementById(`step${step}`).classList.add('active');
+            }
+            currentStep = step;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-spinner').style.display = show ? 'block' : 'none';
+        }
+
+        function showMessage(message, isError = false) {
+            const errorEl = document.getElementById('error-message');
+            const successEl = document.getElementById('success-message');
+            
+            if (isError) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                successEl.style.display = 'none';
+            } else {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+                errorEl.style.display = 'none';
+            }
+            
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+                successEl.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+        }
+
+        function updateStatus(statusId, state) {
+            const statusEl = document.getElementById(statusId);
+            statusEl.classList.remove('active', 'processing');
+            if (state === 'active') {
+                statusEl.classList.add('active');
+            } else if (state === 'processing') {
+                statusEl.classList.add('processing');
+            }
+        }
+
+        function countdown(seconds, callback) {
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            
+            const timer = setInterval(() => {
+                countdownEl.textContent = seconds;
+                seconds--;
+                
+                if (seconds < 0) {
+                    clearInterval(timer);
+                    countdownEl.style.display = 'none';
+                    callback();
+                }
+            }, 1000);
+        }
+
+        function refreshImages() {
+            let timestamp = new Date().getTime();
+            let original = document.getElementById('original-img');
+            let noBg = document.getElementById('no-bg-img');
+            let sketch = document.getElementById('sketch-img');
+
+            original.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+            noBg.src = `http://localhost:5000/image/1_no_background.jpg?t=${timestamp}`;
+            sketch.src = `http://localhost:5000/image/2_sketch.jpg?t=${timestamp}`;
+
+            console.log("Images refreshed!");
+        }
+    
+        function capturePhoto() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            showMessage("Get ready! Taking your photo in...", false);
+            updateStatus('photo-status', 'processing');
+            
+            countdown(3, () => {
+                fetch("http://localhost:5000/capture", { method: "POST" })
+                    .then(response => response.text())
+                    .then(data => {
+                        showMessage("📸 Photo captured successfully!", false);
+                        updateStatus('photo-status', 'active');
+                        updateStep(2);
+                        document.getElementById('process-btn').disabled = false;
+                        setTimeout(refreshImages, 1000);
+                        isProcessing = false;
+                        updateProgress(25);
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        showMessage("❌ Failed to capture photo. Please try again.", true);
+                        updateStatus('photo-status', '');
+                        isProcessing = false;
+                    });
+            });
+        }
+
+        function processPhoto() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            showLoading(true);
+            showMessage("🎨 Creating your masterpiece... This may take a moment!", false);
+            updateStatus('processed-status', 'processing');
+            updateStatus('sketch-status', 'processing');
+            
+            fetch("http://localhost:5000/process", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showLoading(false);
+                    showMessage("✨ Your sketch is ready! Pablo is excited to draw it.", false);
+                    updateStatus('processed-status', 'active');
+                    updateStatus('sketch-status', 'active');
+                    updateStep(3);
+                    document.getElementById('draw-btn').disabled = false;
+                    setTimeout(refreshImages, 1000);
+                    isProcessing = false;
+                    updateProgress(75);
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showLoading(false);
+                    showMessage("❌ Failed to process image. Please try again.", true);
+                    updateStatus('processed-status', '');
+                    updateStatus('sketch-status', '');
+                    isProcessing = false;
+                });
+        }
+
+        function startDrawing() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            showMessage("🤖 Pablo is now drawing your portrait! Watch the magic happen.", false);
+            updateStatus('robot-status', 'processing');
+            document.getElementById('draw-btn').disabled = true;
+            
+            fetch("http://localhost:5000/draw", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showMessage("🎉 Your masterpiece is complete! Pablo had fun drawing you.", false);
+                    updateStatus('robot-status', 'active');
+                    updateStep(4);
+                    isProcessing = false;
+                    updateProgress(100);
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showMessage("❌ Drawing failed. Please try again.", true);
+                    updateStatus('robot-status', '');
+                    document.getElementById('draw-btn').disabled = false;
+                    isProcessing = false;
+                });
+        }
+
+        function resetProcess() {
+            isProcessing = false;
+            updateStep(1);
+            updateProgress(0);
+            
+            // Reset button states
+            document.getElementById('process-btn').disabled = true;
+            document.getElementById('draw-btn').disabled = true;
+            
+            // Reset status indicators
+            document.querySelectorAll('.status-indicator').forEach(indicator => {
+                indicator.classList.remove('active', 'processing');
+            });
+            
+            showMessage("🔄 Ready for a new masterpiece!", false);
+        }
+
+        function openImageInNewTab(imageId) {
+            const image = document.getElementById(imageId);
+            const newTab = window.open();
+            newTab.document.body.innerHTML = `
+                <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
+                    <h2>🎨 Your Pablo Masterpiece</h2>
+                    <img src="${image.src}" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                    <p style="margin-top: 20px; color: #666;">Right-click and "Save As" to download your artwork!</p>
+                </div>
+            `;
+        }
+
+        // Initialize the interface
+        window.onload = function() {
+            updateStep(1);
+            updateStatus('webcam-status', 'active'); // Webcam should be active by default
+            
+            // Check if images are loading properly
+            setTimeout(() => {
+                refreshImages();
+            }, 2000);
+        };
+
+    </script>
+</body>
+</html>
