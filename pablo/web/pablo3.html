@@ -486,6 +486,41 @@
                 font-size: 48px;
             }
         }
+
+        /* Toggle Switch CSS */
+        .switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 24px;
+        vertical-align: middle;
+        }
+        .switch input { display: none; }
+        .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+        }
+        .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+        }
+        input:checked + .slider {
+        background-color: #28a745;
+        }
+        input:checked + .slider:before {
+        transform: translateX(24px);
+        }
     </style>
 </head>
 <body onload="checkSketchExists()">
@@ -551,7 +586,12 @@
             <div class="success-message" id="success-message"></div>
         </div>
         <div class="button-container">
-            
+            <label style="font-size: 16px; margin-right: 10px;">Mode:</label>
+            <label class="switch">
+                <input type="checkbox" id="face-toggle-switch" onchange="toggleFaceMode()">
+                <span class="slider"></span>
+            </label>
+            <span id="face-toggle-label" style="margin-left: 10px; font-size: 16px;">Solo Photo</span>
         </div>
         <div class="button-container">
             <button class="blue-button" onclick="downloadImage('photo-img')">💾 Download</button>
@@ -840,6 +880,14 @@
                     }
                 })
                 .catch(error => console.error("Error checking sketch existence:", error));
+        }
+
+        function toggleFaceMode() {
+            const isChecked = document.getElementById('face-toggle-switch').checked;
+            const label = document.getElementById('face-toggle-label');
+            label.textContent = isChecked ? "Group Photo" : "Solo Photo";
+            // Send toggle to backend
+            fetch("http://localhost:5000/faceToggle", { method: "POST" });
         }
 
         // Initialize webcam status as active

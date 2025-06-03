@@ -19,6 +19,8 @@ CORS(app)  # Enable CORS for all routes
 
 class ImageProcessor(Node):
     #---------- Initialiser ----------
+    facesToggle = False
+
     def __init__(self):
         super().__init__('image_processor')
         self.get_logger().info("Image Processor Node Started")
@@ -62,6 +64,11 @@ class ImageProcessor(Node):
     def run_flask(self):
         app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
+    #---------- Toggle ----------
+    def face_toggle(self):
+        ImageProcessor.facesToggle = not ImageProcessor.facesToggle
+        self.get_logger().info(f'Face toggle set to: {ImageProcessor.facesToggle}')
+
     #---------- Flask Server Frames ----------
     def generate_frames(self):
         """ Continuously captures frames from the webcam for streaming. """
@@ -91,22 +98,40 @@ class ImageProcessor(Node):
             self.get_logger().info(f'Captured Image saved to: {image_path}')
             return "Image captured successfully!", 200
 
+    #---------- Resize Image ----------
     def resize_image(self):
         image_path = os.path.join(self.output_dir, "0_webcam.jpg")
         image = cv2.imread(image_path)
         if image is None:
             self.get_logger().error('No image captured yet!')
             return jsonify({"error": "No image captured yet!"}), 400
-        
-        # Resize the image
-        desired_width = 960
-        aspect_ratio = 4 / 3
-        new_height = int(desired_width / aspect_ratio)
-        dim = (desired_width, new_height)
-        image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
-        cv2.imwrite(image_path, image)
-        self.get_logger().info(f'Captured Image saved to: {image_path}')
-        return jsonify({"message": "Image captured successfully!"}), 200
+
+        # Crop the image to a 4:3 landscape aspect ratio, centered
+        h, w = image.shape[:2]
+        desired_aspect = 4 / 3
+
+        # Calculate new width and height to crop
+        if w / h > desired_aspect:
+            # Image is too wide, crop width
+            new_w = int(h * desired_aspect)
+            new_h = h
+            x1 = (w - new_w) // 2
+            y1 = 0
+        else:
+            # Image is too tall, crop height
+            new_w = w
+            new_h = int(w / desired_aspect)
+            x1 = 0
+            y1 = (h - new_h) // 2
+
+        cropped = image[y1:y1 + new_h, x1:x1 + new_w]
+
+        # Optionally, resize to a standard size (e.g., 960x720)
+        final = cv2.resize(cropped, (960, 720), interpolation=cv2.INTER_AREA)
+
+        cv2.imwrite(image_path, final)
+        self.get_logger().info(f'Captured Image cropped to 4:3 and saved to: {image_path}')
+        return jsonify({"message": "Image cropped to 4:3 successfully!"}), 200
 
     #---------- Image Processing ----------
     def process_image(self):
@@ -126,9 +151,85 @@ class ImageProcessor(Node):
         if len(faces) == 0:
             self.get_logger().error('No face detected!')
             return jsonify({"error": "No face detected! Retake Image"}), 400
+        
+        # # Find the largest face (by area)
+        # if len(faces) > 1:
+        #     faces = sorted(faces, key=lambda rect: rect.width() * rect.height(), reverse=True)
 
-        for face in faces:
-            landmarks = self.predictor(gray_image, face)
+        # Find the face closest to the center of the image
+        if len(faces) > 1:
+            img_h, img_w = gray_image.shape
+            img_cx, img_cy = img_w // 2, img_h // 2
+            def face_center_distance(face):
+                fx = face.left() + face.width() // 2
+                fy = face.top() + face.height() // 2
+                return (fx - img_cx) ** 2 + (fy - img_cy) ** 2
+            faces = sorted(faces, key=face_center_distance)
+
+        # Hide all faces except the largest by drawing black rectangles
+        if not ImageProcessor.facesToggle and len(faces) > 1:
+            img_height = no_bg_face_bgr.shape[0]
+            for other_face in faces[1:]:
+                ox, ow = other_face.left(), other_face.width()
+                # Rectangle spans full image height
+                cv2.rectangle(no_bg_face_bgr, (ox, 0), (ox + ow, img_height), (0, 0, 0), thickness=-1)
+        
+        gray_image = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2GRAY)
+
+        # Use face_toggle to decide whether to process one or all faces
+        # True = Group Photo
+        if ImageProcessor.facesToggle:
+            all_landmarks = [self.predictor(gray_image, face) for face in faces]
+        else:
+            face = faces[0]
+            x, y, w, h = face.left(), face.top(), face.width(), face.height()
+
+            # Increase border by 40%
+            border_x = int(w)
+            border_y = int(h)
+
+            # New coordinates with border, ensuring they stay within image bounds
+            x1 = max(0, x - border_x)
+            y1 = max(0, y - border_y)
+            x2 = min(gray_image.shape[1], x + w + border_x)
+            y2 = min(gray_image.shape[0], y + h + border_y)
+
+            # Crop a 4:3 landscape region around the expanded face rectangle
+            crop_w = x2 - x1
+            crop_h = y2 - y1
+            desired_w = crop_w
+            desired_h = int(desired_w * 3 / 4)
+
+            # Adjust height if needed to maintain 4:3 aspect ratio
+            if crop_h < desired_h:
+                extra = desired_h - crop_h
+                y1 = max(0, y1 - extra // 2)
+                y2 = min(gray_image.shape[0], y2 + (extra - extra // 2))
+            elif crop_h > desired_h:
+                # Center crop to desired_h
+                center_y = (y1 + y2) // 2
+                y1 = max(0, center_y - desired_h // 2)
+                y2 = y1 + desired_h
+                if y2 > gray_image.shape[0]:
+                    y2 = gray_image.shape[0]
+                    y1 = y2 - desired_h
+
+            # Final crop
+            cropped_bgr = no_bg_face_bgr[y1:y2, x1:x2]
+            cropped_gray = gray_image[y1:y2, x1:x2]
+
+            # Overwrite images for further processing
+            no_bg_face_bgr = cropped_bgr
+            gray_image = cropped_gray
+
+            # Update face rectangle for cropped image
+            new_face = dlib.rectangle(
+                left=face.left() - x1,
+                top=face.top() - y1,
+                right=face.right() - x1,
+                bottom=face.bottom() - y1
+            )
+            all_landmarks = [self.predictor(gray_image, new_face)]
 
         # Convert to grayscale for sketch effect
         face_gray = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2GRAY)
@@ -153,11 +254,9 @@ class ImageProcessor(Node):
 
         # Convert edges to 3 channels
         edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-
+        
         # Draw landmark lines
-        for face in faces:
-            landmarks = self.predictor(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), face)
-
+        for landmarks in all_landmarks:
             def draw_landmark_lines(image, landmarks, points, color=(255, 255, 255), thickness=1):
                 for i in range(len(points) - 1):
                     x1, y1 = landmarks.part(points[i]).x, landmarks.part(points[i]).y
@@ -184,19 +283,6 @@ class ImageProcessor(Node):
 
         # Save final sketch
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
-
-        # Add a border to the sketch
-        border_thickness = 1  # Thickness of the border in pixels
-        border_color = (255, 255, 255)  # White border
-        final_sketch_with_border = cv2.copyMakeBorder(
-            final_sketch,
-            top=border_thickness,
-            bottom=border_thickness,
-            left=border_thickness,
-            right=border_thickness,
-            borderType=cv2.BORDER_CONSTANT,
-            value=border_color
-        )
 
         # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
@@ -226,6 +312,10 @@ def capture_frame():
 @app.route('/process', methods=['POST'])
 def process_frame():
     return image_processor.process_image()
+
+@app.route('/faceToggle', methods=['POST'])
+def toggle_face():
+    return image_processor.face_toggle()
 
 @app.route('/image/<filename>')
 def get_image(filename):
