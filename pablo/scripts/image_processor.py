@@ -14,6 +14,14 @@ from rembg import remove
 from threading import Thread
 from std_msgs.msg import Bool
 
+import torch
+from torchvision import transforms
+from PIL import Image
+
+import sys
+sys.path.insert(0, os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/face-parsing.PyTorch"))
+from model import BiSeNet
+
 app = Flask(__name__) # Flask Web Server
 CORS(app)  # Enable CORS for all routes
 
@@ -33,7 +41,7 @@ class ImageProcessor(Node):
 
         # Load Dlib face detector
         self.detector = dlib.get_frontal_face_detector()
-        model_path = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/models/shape_predictor_68_face_landmarks.dat")
+        model_path = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/dlib/shape_predictor_68_face_landmarks.dat")
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
@@ -47,6 +55,22 @@ class ImageProcessor(Node):
         # Create a publisher
         self.publisher_ = self.create_publisher(Bool, 'image_processed', 10)
         self.publisherStarter_ = self.create_publisher(Bool, 'starter', 10)
+
+        # Load the BiSeNet model
+        self.bisenet = BiSeNet(n_classes=19)
+        self.bisenet.load_state_dict(torch.load(
+            os.path.expanduser('~/git/41069_WS_LAB4_G1/pablo/face-parsing.PyTorch/res/cp/79999_iter.pth'),
+            map_location='cpu'
+        ))
+        self.bisenet.eval()
+        self.bisenet.to('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.face_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((512, 512)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
 
     #---------- Destructor ----------
     def delete_old_files(self):
@@ -181,61 +205,85 @@ class ImageProcessor(Node):
         if ImageProcessor.facesToggle:
             all_landmarks = [self.predictor(gray_image, face) for face in faces]
         else:
-            face = faces[0]
-            x, y, w, h = face.left(), face.top(), face.width(), face.height()
+            if len(faces) > 1:
+                face = faces[0]
+                x, y, w, h = face.left(), face.top(), face.width(), face.height()
 
-            # Increase border by 40%
-            border_x = int(w)
-            border_y = int(h)
+                # Increase border by 40%
+                border_x = int(w)
+                border_y = int(h)
 
-            # New coordinates with border, ensuring they stay within image bounds
-            x1 = max(0, x - border_x)
-            y1 = max(0, y - border_y)
-            x2 = min(gray_image.shape[1], x + w + border_x)
-            y2 = min(gray_image.shape[0], y + h + border_y)
+                # New coordinates with border, ensuring they stay within image bounds
+                x1 = max(0, x - border_x)
+                y1 = max(0, y - border_y)
+                x2 = min(gray_image.shape[1], x + w + border_x)
+                y2 = min(gray_image.shape[0], y + h + border_y)
 
-            # Crop a 4:3 landscape region around the expanded face rectangle
-            crop_w = x2 - x1
-            crop_h = y2 - y1
-            desired_w = crop_w
-            desired_h = int(desired_w * 3 / 4)
+                # Crop a 4:3 landscape region around the expanded face rectangle
+                crop_w = x2 - x1
+                crop_h = y2 - y1
+                desired_w = crop_w
+                desired_h = int(desired_w * 3 / 4)
 
-            # Adjust height if needed to maintain 4:3 aspect ratio
-            if crop_h < desired_h:
-                extra = desired_h - crop_h
-                y1 = max(0, y1 - extra // 2)
-                y2 = min(gray_image.shape[0], y2 + (extra - extra // 2))
-            elif crop_h > desired_h:
-                # Center crop to desired_h
-                center_y = (y1 + y2) // 2
-                y1 = max(0, center_y - desired_h // 2)
-                y2 = y1 + desired_h
-                if y2 > gray_image.shape[0]:
-                    y2 = gray_image.shape[0]
-                    y1 = y2 - desired_h
+                # Adjust height if needed to maintain 4:3 aspect ratio
+                if crop_h < desired_h:
+                    extra = desired_h - crop_h
+                    y1 = max(0, y1 - extra // 2)
+                    y2 = min(gray_image.shape[0], y2 + (extra - extra // 2))
+                elif crop_h > desired_h:
+                    # Center crop to desired_h
+                    center_y = (y1 + y2) // 2
+                    y1 = max(0, center_y - desired_h // 2)
+                    y2 = y1 + desired_h
+                    if y2 > gray_image.shape[0]:
+                        y2 = gray_image.shape[0]
+                        y1 = y2 - desired_h
 
-            # Final crop
-            cropped_bgr = no_bg_face_bgr[y1:y2, x1:x2]
-            cropped_gray = gray_image[y1:y2, x1:x2]
+                # Final crop
+                cropped_bgr = no_bg_face_bgr[y1:y2, x1:x2]
+                cropped_gray = gray_image[y1:y2, x1:x2]
 
-            # Overwrite images for further processing
-            no_bg_face_bgr = cropped_bgr
-            gray_image = cropped_gray
+                # Overwrite images for further processing
+                no_bg_face_bgr = cropped_bgr
+                gray_image = cropped_gray
 
-            # Update face rectangle for cropped image
-            new_face = dlib.rectangle(
-                left=face.left() - x1,
-                top=face.top() - y1,
-                right=face.right() - x1,
-                bottom=face.bottom() - y1
-            )
-            all_landmarks = [self.predictor(gray_image, new_face)]
+                # Update face rectangle for cropped image
+                new_face = dlib.rectangle(
+                    left=face.left() - x1,
+                    top=face.top() - y1,
+                    right=face.right() - x1,
+                    bottom=face.bottom() - y1
+                )
+                all_landmarks = [self.predictor(gray_image, new_face)]
+            else:
+                all_landmarks = [self.predictor(gray_image, faces[0])]
 
         # Convert to grayscale for sketch effect
-        face_gray = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2GRAY)
         output_path_gray = os.path.join(self.output_dir, '1_no_background.jpg')
-        cv2.imwrite(output_path_gray, face_gray)
+        cv2.imwrite(output_path_gray, gray_image)
         self.get_logger().info(f'Face with background removed saved to: {output_path_gray}')
+
+        no_bg_face_bgr = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
+
+        # Resize and preprocess image for BiSeNet
+        input_image = cv2.resize(no_bg_face_bgr, (512, 512))
+        input_tensor = self.face_transforms(input_image)
+        input_tensor = input_tensor.unsqueeze(0).to('cuda' if torch.cuda.is_available() else 'cpu')
+
+        # Run through BiSeNet
+        with torch.no_grad():
+            out = self.bisenet(input_tensor)[0]
+            parsing = out.squeeze(0).cpu().numpy().argmax(0)
+
+        # Hair mask = class index 17 in CelebAMask-HQ
+        hair_mask = (parsing == 17).astype(np.uint8) * 255
+        hair_mask = cv2.resize(hair_mask, (no_bg_face_bgr.shape[1], no_bg_face_bgr.shape[0]), interpolation=cv2.INTER_NEAREST)
+
+        # Save as PNG with transparency
+        hair_mask_png = np.stack([hair_mask] * 3 + [hair_mask], axis=-1)  # RGBA
+        hair_mask_path = os.path.join(self.output_dir, "3_hair_mask.png")
+        cv2.imwrite(hair_mask_path, hair_mask_png)
+        self.get_logger().info(f'Hair mask saved to: {hair_mask_path}')
 
         # Apply Blur
         blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
@@ -252,34 +300,33 @@ class ImageProcessor(Node):
             if cv2.contourArea(cnt) > min_contour_area:
                 cv2.drawContours(mask, [cnt], -1, 255, 1)  # Set thickness to 1px
 
+        hair_contours, _ = cv2.findContours(hair_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Draw hair contours on the edges_colored image
+        cv2.drawContours(mask, hair_contours, -1, 255, 1) 
+
         # Convert edges to 3 channels
         edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         
         # Draw landmark lines
+        def draw_landmark_lines(image, landmarks, points, color=(255, 255, 255), thickness=1):
+            for i in range(len(points) - 1):
+                x1, y1 = landmarks.part(points[i]).x, landmarks.part(points[i]).y
+                x2, y2 = landmarks.part(points[i + 1]).x, landmarks.part(points[i + 1]).y
+                cv2.line(image, (x1, y1), (x2, y2), color, thickness)
+        facial_features = {
+            "jaw": list(range(0, 17)),
+            "eyebrows": list(range(17, 27)),
+            "nose": list(range(27, 36)),
+            "eyes": [list(range(36, 42)), list(range(42, 48))],
+            "mouth": [list(range(48, 60)), list(range(60, 68))]
+        }
         for landmarks in all_landmarks:
-            def draw_landmark_lines(image, landmarks, points, color=(255, 255, 255), thickness=1):
-                for i in range(len(points) - 1):
-                    x1, y1 = landmarks.part(points[i]).x, landmarks.part(points[i]).y
-                    x2, y2 = landmarks.part(points[i + 1]).x, landmarks.part(points[i + 1]).y
-                    cv2.line(image, (x1, y1), (x2, y2), color, thickness)
-
-            facial_features = {
-                "jaw": list(range(0, 17)),
-                "eyebrows": list(range(17, 27)),
-                "nose": list(range(27, 36)),
-                "eyes": [list(range(36, 42)), list(range(42, 48))],
-                "mouth": [list(range(48, 60)), list(range(60, 68))]
-            }
-
-            for feature in ["jaw", "nose"]:
-                draw_landmark_lines(edges_colored, landmarks, facial_features[feature])
-
+            draw_landmark_lines(edges_colored, landmarks, facial_features["jaw"])
             draw_landmark_lines(edges_colored, landmarks, list(range(17, 22)))
             draw_landmark_lines(edges_colored, landmarks, list(range(22, 27)))
-
-            for feature in ["eyes", "mouth"]:
-                for part in facial_features[feature]:
-                    draw_landmark_lines(edges_colored, landmarks, part)
+            draw_landmark_lines(edges_colored, landmarks, facial_features["nose"])
+            for part in facial_features["eyes"] + facial_features["mouth"]:
+                draw_landmark_lines(edges_colored, landmarks, part)
 
         # Save final sketch
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
