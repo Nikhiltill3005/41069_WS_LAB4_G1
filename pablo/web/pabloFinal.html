@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PABLO UI</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1.1.0/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1.0.1/build/ros3d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #ffffff;
+            color: #333;
+        }
+
+        header {
+            background-color: #2c82ff;
+            color: white;
+            padding: 10px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 48px;
+            margin: 0;
+        }
+
+        header .subtitle {
+            text-align: right;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1.2fr;
+            gap: 30px;
+            padding: 10px;
+        }
+
+        .container2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 0.5fr;
+            gap: 30px;
+            padding: 10px;
+        }
+
+        .section {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            color: #2c82ff;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            background: #2c82ff;
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        .title h1 {
+            font-size: 96px;
+            color: #ffffff;
+            text-align: left;
+            margin-left: 9px;
+            margin-top: -14px;
+            margin-bottom: -10px;
+        }
+
+        .title h2 {
+            font-size: 22px;
+            color: #ffffff;
+            text-align: left;
+            margin-left: -18px;
+            margin-top: 5px;
+            margin-bottom: 0px;
+        }
+
+        .title h3 {
+            font-size: 22px;
+            color: #ffffff;
+            text-align: left;
+            margin-left: -18px;
+            margin-top: -2px;
+            margin-bottom: 0px;
+        }
+
+        .how-to {
+            background: #2c82ff;
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        .how-to h2 {
+            color: white;
+            font-size: 40px;
+            text-align: center;
+            margin-bottom: -5px;
+            margin-top: 0;
+        }
+
+        .how-to .step {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 0px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            width: 96%;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .how-to .step.active {
+            background: #e7f3ff;
+            border-left: 4px solid #FF6D00;
+            transform: translateX(5px);
+            width: 94.6%;
+        }
+
+        .how-to .step.completed {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            width: 95.4%;
+        }
+
+        .how-to .step-circle {
+            background: #2c82ff;
+            color: white;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .how-to .step.completed .step-circle {
+            background: #28a745;
+        }
+
+        .how-to .step.active .step-circle {
+            animation: bounce 1s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 60%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            80% { transform: translateY(-5px); }
+        }
+
+        .how-to .step-text {
+            flex-grow: 1;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .camera-wrapper,
+        .image-wrapper,
+        .simulator-wrapper {
+            background: #2c82ff;
+            border-radius: 15px;
+            padding: 5px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .camera-heading,
+        .image-heading,
+        .simulator-heading {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 40px;
+            text-align: center;
+        }
+
+        .camera-box,
+        .image-box,
+        .simulator-box {
+            background: white;
+            border-radius: 10px;
+            aspect-ratio: 4 / 3;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .camera-box img,
+        .image-box img,
+        .simulator-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .simulator-box img {
+            object-fit: contain;
+            background-color: #f8f9fa;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+            z-index: 10;
+        }
+        
+        .status-indicator.active {
+            background: #28a745;
+        }
+        
+        .status-indicator.processing {
+            background: #ffc107;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .camera-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #2c82ff, #0056b3);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .camera-button:hover {
+            background: linear-gradient(45deg, #0056b3, #004494);
+            transform: translateX(-50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .camera-icon {
+            width: 12px;
+            height: 12px;
+            filter: brightness(0) invert(1);
+            object-fit: contain;
+            display: block;
+        }
+
+        .image-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .image-controls button {
+          border: none;
+          background: none; /* Remove background */
+          color: white; /* Keep the arrow icons white */
+          font-size: 40px; /* Adjust font size for larger arrows */
+          cursor: pointer;
+          font-weight: bold;
+          transition: transform 0.3s ease; /* Add a hover effect */
+          margin-left: 10px; /* Add some space between the arrows and the label */
+          margin-right: 10px; /* Add some space between the arrows and the label */
+        }
+
+        .image-controls button:hover {
+          transform: scale(1.2); /* Slightly enlarge the arrow on hover */
+        }     
+
+        .image-controls span {
+            color: white;
+            font-weight: bold;
+            font-size: 40px;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .controls button {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #2c82ff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls button:disabled {
+            background: #6c757d;
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls button.green-button {
+            background: linear-gradient(45deg, #28a745, #218838);
+        }
+
+        .controls .toggle {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start; /* Align items to the left */
+          gap: 10px;
+          background: rgb(241, 241, 241);
+          padding: 12px;
+          border-radius: 10px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          text-align: left; /* Ensure text aligns properly */
+          padding-left: 34%; /* Add padding to the left for better spacing */
+        }
+
+        .controls .toggle label {
+          color: #333;
+          font-weight: bold;
+          white-space: nowrap; /* Prevent "Mode:" from wrapping */
+        }
+
+        .controls .checkbox {
+          display: flex;
+          align-items: center;
+          justify-content: center; /* Align items to the left */
+          gap: 10px;
+          background: rgb(241, 241, 241);
+          padding: 12px;
+          border-radius: 10px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+          text-align: left; /* Ensure text aligns properly */
+        }
+
+        .controls .checkbox label {
+          color: #333;
+          font-weight: bold;
+          white-space: nowrap; /* Prevent "Mode:" from wrapping */
+        }
+
+        #face-toggle-label {
+          flex-grow: 1; /* Allow the "Solo Photo" text to expand */
+          text-align: left; /* Align the text to the left */
+          color: #272727;
+          font-weight: bold;
+        }
+
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 48px;
+          height: 24px;
+          vertical-align: middle;
+        }
+
+        .switch input {
+          display: none;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: 0.4s;
+          border-radius: 24px;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 3px;
+          bottom: 3px;
+          background-color: white;
+          transition: 0.4s;
+          border-radius: 50%;
+        }
+
+        input:checked + .slider {
+          background-color: #28a745;
+        }
+
+        input:checked + .slider:before {
+          transform: translateX(24px);
+        }
+
+        .progress-status {
+            text-align: center;
+            margin-top: 20px;
+            color: #2c82ff;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2c82ff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2c82ff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            header h1 {
+                font-size: 36px;
+            }
+            
+            .title h1 {
+                font-size: 72px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+            
+            header h1 {
+                font-size: 28px;
+            }
+            
+            .title h1 {
+                font-size: 48px;
+            }
+            
+            .how-to h2,
+            .camera-heading,
+            .image-heading,
+            .simulator-heading {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body onload="checkSketchExists()">
+    <div class="container">
+        <!-- Left Column -->
+        <div>
+            <div class="section title">
+                <div class="container2">
+                    <div><h1>PABLO</h1></div>
+                    <div>
+                        <h2>THE SELFIE</h2>
+                        <h3>DRAWING</h3>
+                        <h3>ROBOT</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="how-to">
+                <h2>HOW TO USE</h2>
+                <div class="step active" id="step1">
+                    <div class="step-circle">1</div>
+                    <div class="step-text">Click the camera button to capture a selfie, or upload your own image.</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-circle">2</div>
+                    <div class="step-text">Click on the mode toggle to switch between Solo & Group Photo Mode.</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-circle">3</div>
+                    <div class="step-text">Click "Generate Sketch" to let the AI process your selfie image into a custom line drawing.</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-circle">4</div>
+                    <div class="step-text">Click "Start Drawing" to watch Pablo create your masterpiece with the robot arm.</div>
+                </div>
+                <div class="step" id="step5">
+                    <div class="step-circle">5</div>
+                    <div class="step-text">Optional: Download your finished artwork and share it with friends.</div>
+                </div>
+            </div>
+
+            <div class="progress-status">PROGRESS STATUS</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="loading-spinner" id="loading-spinner"></div>
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+        </div>
+
+        <!-- Center Column -->
+        <div>
+            <div class="camera-wrapper">
+                <div class="camera-heading">CAMERA</div>
+                <div class="camera-box">
+                    <div class="status-indicator active" id="webcam-status"></div>
+                    <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="Camera Feed" />
+                    <button class="camera-button" onclick="capturePhoto()">
+                        <img src="camera-icon.png" alt="Camera Icon" class="camera-icon">
+                    </button>
+                </div>
+            </div>
+
+            <div class="image-wrapper">
+                <div class="image-controls">
+                    <button onclick="toggleImage('left')">&larr;</button>
+                    <span id="photo-label">IMAGE</span>
+                    <button onclick="toggleImage('right')">&rarr;</button>
+                </div>
+                <div class="image-box">
+                    <div class="status-indicator" id="photo-status"></div>
+                    <img id="photo-img" src="http://localhost:5000/image/0_webcam.jpg" alt="Captured Image" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+            <div class="simulator-wrapper">
+                <div class="simulator-heading">SIMULATOR</div>
+                <div class="simulator-box">
+                    <div class="status-indicator" id="sim-status"></div>
+                    <img id="sim-feed" src="ur3e.jpg" alt="Robot Simulator" />
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="toggle">
+                    <label>Mode:</label>
+                    <label class="switch">
+                        <input type="checkbox" id="face-toggle-switch" onchange="toggleFaceMode()">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="face-toggle-label">Solo Photo</span>
+                </div>
+                
+                <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
+                <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
+                
+                <button onclick="processPhoto()">🖼️ Generate Sketch</button>
+                
+                <button onclick="downloadImage('photo-img')">💾 Download</button>
+
+                <div class="checkbox">
+                    <input type="checkbox" id="selfie" checked>
+                    <label for="selfie">Selfie</label>
+                    <input type="checkbox" id="sketch" checked style="margin-left:10px;"/>
+                    <label for="sketch">Sketch</label>
+                </div>
+                
+                <button id="start-drawing-button" class="grey-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImageIndex = 0; 
+        let currentStep = 1;
+        const images = [
+            { src: "http://localhost:5000/image/0_webcam.jpg", label: "IMAGE" },
+            { src: "http://localhost:5000/image/2_sketch.jpg", label: "SKETCH" }
+        ];
+
+        function updateStep(step) {
+            // Remove active class from all steps
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            // Add completed class to previous steps
+            for (let i = 1; i < step; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            // Add active class to current step
+            if (step <= 5) {
+                document.getElementById(`step${step}`).classList.add('active');
+            }
+            currentStep = step;
+        }
+
+        function updateStatus(statusId, state) {
+            const statusEl = document.getElementById(statusId);
+            if (statusEl) {
+                statusEl.classList.remove('active', 'processing');
+                if (state === 'active') {
+                    statusEl.classList.add('active');
+                } else if (state === 'processing') {
+                    statusEl.classList.add('processing');
+                }
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+        }
+
+        function showMessage(message, isError = false) {
+            const errorEl = document.getElementById('error-message');
+            const successEl = document.getElementById('success-message');
+            
+            if (isError) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                successEl.style.display = 'none';
+            } else {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+                errorEl.style.display = 'none';
+            }
+            
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+                successEl.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-spinner').style.display = show ? 'block' : 'none';
+        }
+
+        function toggleImage(direction) {
+            const timestamp = new Date().getTime();
+            if (direction === 'left') {
+                currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            } else if (direction === 'right') {
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+            }
+            const currentImage = images[currentImageIndex];
+            document.getElementById('photo-img').src = `${currentImage.src}?t=${timestamp}`;
+            document.getElementById('photo-label').textContent = currentImage.label;
+        }
+    
+        function uploadImage(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                showMessage("❌ No file selected!", true);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            showLoading(true);
+            updateStatus('photo-status', 'processing');
+
+            fetch("http://localhost:5000/upload", {
+                method: "POST",
+                body: formData,
+            })
+                .then(response => response.text())
+                .then(data => {
+                    showLoading(false);
+                    showMessage("📁 " + data, false);
+                    updateStatus('photo-status', 'active');
+                    updateStep(3);
+                    updateProgress(25);
+                    
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.disabled = true;
+                    startDrawingButton.classList.remove('green-button');
+
+                    setTimeout(() => {
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "IMAGE";
+                        currentImageIndex = 0;
+                    }, 2000);
+
+                    checkSketchExists();
+                })
+                .catch(error => {
+                    console.error("Error uploading image:", error);
+                    showLoading(false);
+                    showMessage("❌ Error uploading image", true);
+                    updateStatus('photo-status', '');
+                });
+        }
+
+        function capturePhoto() {
+            showLoading(true);
+            updateStatus('photo-status', 'processing');
+            
+            fetch("http://localhost:5000/capture", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showLoading(false);
+                    showMessage("📸 " + data, false);
+                    updateStatus('photo-status', 'active');
+                    updateStep(3);
+                    updateProgress(25);
+                    
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.disabled = true;
+                    startDrawingButton.classList.remove('green-button');
+
+                    setTimeout(() => {
+                        currentImageIndex = 0;
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "IMAGE";
+                    }, 2000);
+
+                    checkSketchExists();
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showLoading(false);
+                    showMessage("❌ Error capturing photo", true);
+                    updateStatus('photo-status', '');
+                });
+        }
+
+        function processPhoto() {
+            showLoading(true);
+            updateStatus('photo-status', 'processing');
+            
+            fetch("http://localhost:5000/process", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showLoading(false);
+                    showMessage("🎨 " + data, false);
+                    updateStep(4);
+                    updateProgress(75);
+                    
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.removeAttribute('disabled');
+                    startDrawingButton.classList.add('green-button');
+
+                    setTimeout(() => {
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/2_sketch.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "SKETCH";
+                        currentImageIndex = 1;
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showLoading(false);
+                    showMessage("❌ Error processing photo", true);
+                    updateStatus('photo-status', '');
+                });
+        }
+
+        function startDrawing() {
+            showLoading(true);
+            updateStatus('sim-status', 'processing');
+            
+            fetch("http://localhost:5000/draw", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showLoading(false);
+                    showMessage("🎉 " + data, false);
+                    updateStatus('sim-status', 'active');
+                    updateStep(5);
+                    updateProgress(100);
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    showLoading(false);
+                    showMessage("❌ Error during drawing", true);
+                    updateStatus('sim-status', '');
+                });
+        }
+
+        function downloadImage(imageId) {
+            const image = document.getElementById(imageId);
+            const photoLabel = document.getElementById('photo-label').textContent;
+            const filename = photoLabel === "SKETCH" ? "sketch.jpg" : "image.jpg";
+
+            fetch(image.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error("Error downloading the image:", error);
+                    showMessage("❌ Error downloading image", true);
+                });
+        }
+
+        function checkSketchExists() {
+            const sketchUrl = "http://localhost:5000/image/2_sketch.jpg";
+
+            fetch(sketchUrl, { method: "HEAD" })
+                .then(response => {
+                    if (response.ok) {
+                        const startDrawingButton = document.getElementById('start-drawing-button');
+                        startDrawingButton.removeAttribute('disabled');
+                        startDrawingButton.classList.add('green-button');
+                        document.getElementById('photo-img').src = sketchUrl;
+                        document.getElementById('photo-label').textContent = "SKETCH";
+                        currentImageIndex = 1;
+                        updateStep(4);
+                        updateProgress(75);
+                    } else {
+                        console.log("Sketch image does not exist.");
+                    }
+                })
+                .catch(error => console.error("Error checking sketch existence:", error));
+        }
+
+        function toggleFaceMode() {
+            const isChecked = document.getElementById('face-toggle-switch').checked;
+            const label = document.getElementById('face-toggle-label');
+            label.textContent = isChecked ? "Group Photo" : "Solo Photo";
+            // Send toggle to backend
+            fetch("http://localhost:5000/faceToggle", { method: "POST" });
+        }
+
+        // Initialize webcam status as active
+        window.onload = function() {
+            checkSketchExists();
+            updateStatus('webcam-status', 'active');
+            updateStep(1);
+        };
+    </script>
+    
+</body>
+</html>
