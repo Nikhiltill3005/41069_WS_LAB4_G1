@@ -59,7 +59,7 @@ class ImageProcessor(Node):
         # Load the BiSeNet model
         self.bisenet = BiSeNet(n_classes=19)
         self.bisenet.load_state_dict(torch.load(
-            os.path.expanduser('~/git/41069_WS_LAB4_G1/pablo/face-parsing.PyTorch/res/cp/79999_iter.pth'),
+            os.path.expanduser('~/git/41069_WS_LAB4_G1/pablo/face-parsing.PyTorch/79999_iter.pth'),
             map_location='cpu'
         ))
         self.bisenet.eval()
