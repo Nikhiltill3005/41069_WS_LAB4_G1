@@ -45,7 +45,7 @@ class ImageProcessor(Node):
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
-        self.cap = cv2.VideoCapture(2) # 0 for default camera, 2/4 for external camera
+        self.cap = cv2.VideoCapture(0) # 0 for default camera, 2/4 for external camera
         self.current_frame = None
 
         # Start Flask server in a separate thread

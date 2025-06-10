@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/roslib@1.1.0/build/roslib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ros3d@1.0.1/build/ros3d.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/roslib"></script>
+    <script src="unity-build/Build/testWEB.loader.js"></script>
     <style>
         body {
             margin: 0;
@@ -201,6 +202,7 @@
             border-radius: 10px;
             aspect-ratio: 4 / 3;
             width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -215,6 +217,19 @@
             height: 100%;
             object-fit: cover;
             border-radius: 10px;
+        }
+
+        .simulator-box iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
         }
 
         .simulator-box img {
@@ -613,7 +628,12 @@
                 <div class="simulator-heading">SIMULATOR</div>
                 <div class="simulator-box">
                     <div class="status-indicator" id="sim-status"></div>
-                    <img id="sim-feed" src="ur3e.jpg" alt="Robot Simulator" />
+                    <iframe
+                        id="unity sim"
+                        src="http://localhost:8080"
+                        frameborder="0"
+                        allowfullscreen>
+                    </iframe>
                 </div>
             </div>
             
@@ -654,6 +674,26 @@
             { src: "http://localhost:5000/image/2_sketch.jpg", label: "SKETCH" }
         ];
 
+        var buildUrl = "unity/Build";
+        var loaderUrl = buildUrl + "/Build.loader.js";
+        var config = {
+            dataUrl: buildUrl + "/Build.data",
+            frameworkUrl: buildUrl + "/Build.framework.js",
+            codeUrl: buildUrl + "/Build.wasm",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "YourCompany",
+            productName: "YourProduct",
+            productVersion: "1.0",
+        };
+
+        var container = document.querySelector("#unityContainer");
+        createUnityInstance(container, config, (progress) => {
+            console.log("Loading progress:", progress);
+        }).then((unityInstance) => {
+            window.unityInstance = unityInstance;
+        });
+
+        
         function updateStep(step) {
             // Remove active class from all steps
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -791,7 +831,7 @@
                         const timestamp = new Date().getTime();
                         const photoImg = document.getElementById('photo-img');
                         photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
-                        document.getElementById('photo-label').textContent = "IMAGE";
+                        document.getElementById('photo-img').src = 'http://localhost:5000/image/0_webcam.jpg?t=' + new Date().getTime();
                     }, 2000);
 
                     checkSketchExists();

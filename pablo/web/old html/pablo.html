@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PABLO</title>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1.1.0/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1.0.1/build/ros3d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        /*-------------------------- Header --------------------------*/
+        .header-container {
+            background-color: rgb(0, 119, 255); /* Blue background */
+            color: white; /* White text for contrast */
+            width: 100%; /* Span the entire width of the page */
+            padding: 15px; /* Add some padding around the header */
+            box-sizing: border-box; /* Include padding in the element's total width */
+            position: absolute; /* Position it at the top */
+            top: 0;
+            left: 0;
+            display: flex; /* Use flexbox for layout */
+            justify-content: space-between; /* Space out the elements */
+            align-items: center; /* Align items vertically */
+        }
+        h1 {
+            font-family: Arial, sans-serif;
+            font-size: 64px; 
+            margin: 0; /* Remove default margin */
+            margin-left: 20px; /* Add some left margin */
+            text-align: left; 
+        }
+        .header-subtext {
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Smaller font size */
+            font-weight: bold; /* Bold text */
+            margin-right: 20px; /* Add some right margin */
+            text-align: right;
+            margin-top: 30px;
+        }
+        
+        /*-------------------------- Header --------------------------*/
+        .footer-container {
+            color: black; /* White text */
+            text-align: center; /* Center the text */
+            position: fixed; /* Fix the footer at the bottom */
+            bottom: 0; /* Position it at the bottom of the page */
+            width: 100%; /* Span the entire width of the page */
+            font-family: Arial, sans-serif; /* Match the font with the rest of the page */
+            font-size: 14px; /* Smaller font size */
+        }
+        /*-------------------------- Labels --------------------------*/
+        .label-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 0; /* Add space between the header and the label container */
+            background-color: #ffffff; /* White background for the box */
+            border: 2px solid #007BFF; /* Blue border */
+            padding: 10px; /* Add padding inside the box */
+            width: 480px; /* Fixed width */
+            box-sizing: border-box; /* Include padding and border in the total width and height */
+            position: relative; /* Position relative for absolute positioning of buttons */
+        }
+        label {
+            font-size: 24px; /* Font size for labels */
+            color: #007BFF; /* Dark text color */
+        }
+
+        /*-------------------------- Grid --------------------------*/
+        .grid1-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            justify-content: center; /* Center the grid horizontally */
+            align-items: center; /* Align items vertically */
+            padding: 120px 0px 0px; /* Add 10px padding on the left and right */
+            box-sizing: border-box; /* Include padding in the width calculation */
+            width: fit-content; /* Ensure the grid takes only as much space as needed */
+            margin: 0 auto; /* Center the grid on the page */
+            column-gap: 150px; /* Space between columns */
+        }
+        .grid2-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            justify-content: center; /* Center the grid horizontally */
+            align-items: center; /* Align items vertically */
+            margin-top: -2px; /* Adjust the margin to overlap with the header */
+            padding: 0px 0px 0px; /* Add 10px padding on the left and right */
+            box-sizing: border-box; /* Include padding in the width calculation */
+            width: fit-content; /* Ensure the grid takes only as much space as needed */
+            margin: 0 auto; /* Center the grid on the page */
+            column-gap: 150px; /* Space between columns */
+        }
+
+        /*-------------------------- Images --------------------------*/
+        img {
+            width: 100%; /* Fixed width */
+            height: 100%;
+            border-radius: 0px;
+            border: 0px solid #ddd;
+            box-sizing: border-box; /* Include padding and border in the total width and height */
+        }
+        .rectangular-box {
+            position: relative; /* Make the container a positioned element */
+            width: 480px; /* Fixed width */
+            height: 360px; /* Fixed height */
+            border: 2px solid #007BFF; /* Blue border */
+            display: inline-block;
+            box-sizing: border-box; /* Include padding and border in the total width and height */
+            padding: 0; /* Ensure no extra padding inside the box */
+        }
+        #webcam-feed {
+            width: 100%; /* Ensure the image fits the box */
+            height: 100%; /* Ensure the image fits the box */
+            border-radius: 0; /* Remove any border radius */
+        }
+
+        /*-------------------------- Camera Button --------------------------*/
+        .camera-button {
+            position: absolute;
+            bottom: 20px;
+            left: 218px;
+            width: 50px;
+            height: 50px;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            background-image: url('path/to/your/custom-image.png'); /* Set the custom image */
+            background-size: cover; /* Ensure the image covers the button */
+            background-position: center; /* Center the image */
+            background-repeat: no-repeat; /* Prevent the image from repeating */
+        }
+        .camera-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        .camera-icon {
+            width: 24px; /* Adjust the width of the custom image */
+            height: 24px; /* Adjust the height of the custom image */
+        }
+
+        /*-------------------------- Buttons --------------------------*/
+        .button-container {
+            display: flex;
+            justify-content: center; /* Center the button horizontally */
+            align-items: center; /* Center the button vertically */
+            width: 100%; /* Ensure the container spans the full width */
+            z-index: 10; /* Set a high z-index to bring the button to the front */
+        }
+        button {
+            padding: 10px 20px; /* Add consistent padding */
+            font-size: 16px; /* Set a readable font size */
+            margin-top: 20px; /* Add spacing above the button */
+            cursor: pointer; /* Ensure the pointer cursor appears */
+            border: none; /* Remove any default border */
+            width: 480px; /* Allow the button to adjust to its content */
+            height: auto; /* Let the height adjust based on content */
+            display: flex; /* Use flexbox for alignment */
+            justify-content: center; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            text-align: center; /* Center the text inside the button */
+            box-sizing: border-box; /* Include padding and border in the button's dimensions */
+        }
+        .blue-button {
+            background-color: #007BFF;
+            color: white;
+        }
+        .blue-button:hover {
+            background-color: #0056b3;
+        }
+        .grey-button {
+            background-color: #6c757d; /* Gray color */
+            color: white;
+            cursor: not-allowed; /* Show not-allowed cursor */
+        }
+        .green-button {
+            background-color: #28a745; /* Green color */
+            color: white;
+        }
+        .green-button:hover {
+            background-color: #218838; /* Darker green on hover */
+        }
+        .square-button {
+            width: 40px; /* Fixed width */
+            height: 40px; /* Fixed height */
+            background-color: #007BFF; /* Blue background */
+            color: white; /* White text */
+            border: none; /* Remove border */
+            cursor: pointer; /* Pointer cursor on hover */
+            display: flex; /* Use flexbox for alignment */
+            justify-content: center; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            font-size: 16px; /* Font size for button text */
+        }
+
+        .arrow-button {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            cursor: pointer;
+            top: -16px; /* Move the buttons slightly higher */
+            font-weight: bold; /* Make the arrow text bold */
+        }
+
+        .arrow-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        .arrow-button:first-of-type {
+            left: 6px; /* Position the left button */
+        }
+
+        .arrow-button:last-of-type {
+            right: 6px; /* Position the right button */
+        }
+    </style>
+</head>
+<body onload="checkSketchExists()">
+    <div class="header-container">
+        <h1>PABLO</h1>
+        <span class="header-subtext">Selfie Drawing Robot</span>
+    </div>
+    <div class="grid1-container">
+        <div class="label-container">
+            <label>Simulator</label>
+        </div>
+        <div class="label-container">
+            <label>Camera</label>
+        </div>
+        <div class="label-container">
+            <button class="arrow-button" onclick="toggleImage('left')">←</button>
+        <label id="photo-label">Image</label> <!-- Add an ID to the label -->
+        <button class="arrow-button" onclick="toggleImage('right')">→</button>
+        </div>
+    </div>
+    <div class="grid2-container">
+        <div class="rectangular-box">
+            <img id="sim-feed" src="ur3e.jpg" alt="">
+            <!-- <iframe id="rviz-simulator" src="http://localhost:8080/stream?topic=/camera/image_raw" width="100%" height="600" frameborder="0" allowfullscreen></iframe> -->
+        </div>
+
+        <div class="rectangular-box">
+            <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="">
+            <button class="camera-button" onclick="capturePhoto()">
+                <img src="camera-icon.png" alt="Camera Icon" class="camera-icon">
+            </button>
+        </div>
+
+        <div class="rectangular-box">
+            <img id="photo-img" src="http://localhost:5000/image/0_webcam.jpg" alt="">
+        </div>
+    </div>
+
+    <div class="grid2-container">
+        <div class="button-container">
+            <button id="start-drawing-button" class="grey-button" onclick="startDrawing()" disabled>Start Drawing</button>
+        </div>
+        <div class="button-container">
+            <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="uploadImage(event)">
+            <button class="blue-button" onclick="document.getElementById('image-upload').click()">Upload Image</button>
+        </div>
+        <div class="button-container">
+            <button class="blue-button" onclick="processPhoto()">Generate Sketch</button>
+        </div>
+    </div>
+    <div class="grid2-container">
+        <div class="button-container">
+            
+        </div>
+        <div class="button-container">
+            
+        </div>
+        <div class="button-container">
+            <button class="blue-button" onclick="downloadImage('photo-img')">Download</button>
+        </div>
+    </div>
+
+    <footer class="footer-container">
+        <p>Created by Edan Anonuevo, Nikhil Kumar & Sachin Hanel</p>
+    </footer>
+
+    <script>
+        let currentImageIndex = 1; 
+        const images = [
+            { src: "http://localhost:5000/image/0_webcam.jpg", label: "Image" },
+            { src: "http://localhost:5000/image/2_sketch.jpg", label: "Sketch" }
+        ];
+
+        function toggleImage(direction) {
+            const timestamp = new Date().getTime(); // Generate a unique timestamp
+            if (direction === 'left') {
+                currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+            } else if (direction === 'right') {
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+            }
+            const currentImage = images[currentImageIndex];
+            // Append the timestamp to the image URL to bypass the cache
+            document.getElementById('photo-img').src = `${currentImage.src}?t=${timestamp}`;
+            document.getElementById('photo-label').textContent = currentImage.label; // Update the label text
+        }
+    
+        function uploadImage(event) {
+            const file = event.target.files[0]; // Get the selected file
+            if (!file) {
+                alert("No file selected!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", file); // Append the file to the form data
+
+            fetch("http://localhost:5000/upload", { // Replace with your server's upload endpoint
+                method: "POST",
+                body: formData,
+            })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data); // Notify the user of the upload status
+                    // Reset the "Start Drawing" button to grey and disabled
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.disabled = true; // Disable the button
+                    startDrawingButton.classList.remove('green-button'); // Remove the green style
+                    startDrawingButton.classList.add('grey-button'); // Add the grey style
+
+                    setTimeout(() => {
+                        // Add a unique timestamp to the image URL to force refresh
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "Image"; // Update the label to "Image"
+                    }, 2000); // Delay refresh to ensure the photo is processed
+
+                    checkSketchExists(); // Check if the sketch exists after capturing
+                })
+                .catch(error => console.error("Error uploading image:", error));
+        }
+
+        function capturePhoto() {
+            fetch("http://localhost:5000/capture", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    // Reset the "Start Drawing" button to grey and disabled
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.disabled = true; // Disable the button
+                    startDrawingButton.classList.remove('green-button'); // Remove the green style
+                    startDrawingButton.classList.add('grey-button'); // Add the grey style
+
+                    setTimeout(() => {
+                        // Add a unique timestamp to the image URL to force refresh
+                        currentImageIndex = 1; // Reset to the original image
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "Image"; // Update the label to "Image"
+                    }, 2000); // Delay refresh to ensure the photo is processed
+
+                    checkSketchExists(); // Check if the sketch exists after capturing
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
+        function processPhoto() {
+            fetch("http://localhost:5000/process", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    // Enable the "Start Drawing" button and change its style
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.removeAttribute('disabled'); // Explicitly remove the disabled attribute
+                    startDrawingButton.classList.remove('grey-button'); // Remove the gray style
+                    startDrawingButton.classList.add('green-button'); // Add the green style
+
+                    setTimeout(() => {
+                        // Add a unique timestamp to the image URL to force refresh
+                        const timestamp = new Date().getTime();
+                        const photoImg = document.getElementById('photo-img');
+                        photoImg.src = `http://localhost:5000/image/2_sketch.jpg?t=${timestamp}`;
+                        document.getElementById('photo-label').textContent = "Sketch"; // Update the label to "Image"
+                    }, 2000); // Delay refresh to ensure the photo is processed
+
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
+        function startDrawing() {
+            fetch("http://localhost:5000/draw", { method: "POST" })
+                .then(response => response.text())
+                .then(data => alert(data))
+                .catch(error => console.error("Error:", error));
+        }
+
+        function downloadImage(imageId) {
+            const image = document.getElementById(imageId);
+
+            // Determine the filename based on the image being displayed
+            const photoLabel = document.getElementById('photo-label').textContent; // Get the label text
+            const filename = photoLabel === "Sketch" ? "sketch.jpg" : "image.jpg"; // Set filename based on label
+
+            // Fetch the image as a Blob
+            fetch(image.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    // Create a temporary URL for the Blob
+                    const url = window.URL.createObjectURL(blob);
+
+                    // Create a temporary <a> element
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename; // Use the dynamically determined filename
+
+                    // Trigger the download
+                    link.click();
+
+                    // Clean up the temporary URL
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => console.error("Error downloading the image:", error));
+        }
+
+        function openImageInNewTab(imageId) {
+            const image = document.getElementById(imageId);
+            const newTab = window.open(); // Open a new tab
+            newTab.document.body.innerHTML = `<img src="${image.src}" style="max-width: 100%; height: auto;">`; // Display the image in the new tab
+        }
+
+        function checkSketchExists() {
+            const sketchUrl = "http://localhost:5000/image/2_sketch.jpg";
+
+            fetch(sketchUrl, { method: "HEAD" }) // Use HEAD to check if the file exists
+                .then(response => {
+                    if (response.ok) {
+                        // If the file exists, update the button
+                        const startDrawingButton = document.getElementById('start-drawing-button');
+                        startDrawingButton.removeAttribute('disabled'); // Explicitly remove the disabled attribute
+                        startDrawingButton.classList.remove('grey-button'); // Remove the gray style
+                        startDrawingButton.classList.add('green-button'); // Add the green style
+                        document.getElementById('photo-img').src = sketchUrl; // Update the image to the sketch
+                        document.getElementById('photo-label').textContent = "Sketch"; // Update the label to "Sketch"
+                    } else {
+                        console.log("Sketch image does not exist.");
+                    }
+                })
+                .catch(error => console.error("Error checking sketch existence:", error));
+        }
+
+        // RVIZ Simlator
+        // Connect to ROSBridge WebSocket
+        var ros = new ROSLIB.Ros({
+            url : 'ws://localhost:9090'  // Ensure rosbridge is running
+        });
+
+        ros.on('connection', function() {
+            console.log('Connected to ROSBridge');
+        });
+
+        ros.on('error', function(error) {
+            console.log('Error connecting to ROSBridge:', error);
+        });
+
+        ros.on('close', function() {
+            console.log('Connection to ROSBridge closed.');
+        });
+
+        // Create 3D Viewer
+        var viewer = new ROS3D.Viewer({
+            divID : 'viewer',
+            width : 480,
+            height : 360,
+            background : '#111'
+        });
+
+        // Connect TF client to listen to transform updates
+        var tfClient = new ROS3D.TFClient({
+            ros : ros,
+            fixedFrame : 'world',  // Change to your robot's fixed frame (e.g., "base_link")
+            angularThres : 0.01,
+            transThres : 0.01,
+            rate : 10.0
+        });
+
+        // Load URDF model of the robot
+        var urdfClient = new ROS3D.UrdfClient({
+            ros : ros,
+            tfClient : tfClient,
+            path : 'http://localhost:8000/ur3e.urdf', // Ensure this matches the file's URL
+            rootObject : viewer.scene
+        });
+    </script>
+    
+</body>
+</html>
