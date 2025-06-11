@@ -393,6 +393,11 @@ def upload_image():
     image_processor.resize_image()
     return f"File uploaded successfully: {new_filename}", 200
 
+@app.route('/faceToggleState', methods=['GET'])
+def get_face_toggle_state():
+    # Return the current state as JSON
+    return jsonify({"facesToggle": ImageProcessor.facesToggle})
+
 def main(args=None):
     rclpy.init(args=args)
     global image_processor

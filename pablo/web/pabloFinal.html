@@ -13,7 +13,8 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', sans-serif;
-            background: #ffffff;
+            background: url('background-3.jpg') no-repeat center center fixed;
+            background-size: cover;
             color: #333;
         }
 
@@ -46,7 +47,7 @@
 
         .container2 {
             display: grid;
-            grid-template-columns: 1fr 1fr 0.5fr;
+            grid-template-columns: 1fr 1fr 0.3fr;
             gap: 30px;
             padding: 10px;
         }
@@ -65,7 +66,9 @@
         }
 
         .title {
-            background: #2c82ff;
+            background-color: rgba(44, 130, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 15px;
             padding: 5px;
             margin-bottom: 10px;
@@ -87,6 +90,7 @@
             margin-left: -18px;
             margin-top: 5px;
             margin-bottom: 0px;
+            position: absolute;
         }
 
         .title h3 {
@@ -94,12 +98,25 @@
             color: #ffffff;
             text-align: left;
             margin-left: -18px;
-            margin-top: -2px;
+            margin-top: 30px;
             margin-bottom: 0px;
+            position: absolute;
+        }
+
+        .title h4 {
+            font-size: 22px;
+            color: #ffffff;
+            text-align: left;
+            margin-left: -18px;
+            margin-top: 55px;
+            margin-bottom: 0px;
+            position: absolute;
         }
 
         .how-to {
-            background: #2c82ff;
+            background-color: rgba(44, 130, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 15px;
             padding: 5px;
             margin-bottom: 10px;
@@ -178,7 +195,9 @@
         .camera-wrapper,
         .image-wrapper,
         .simulator-wrapper {
-            background: #2c82ff;
+            background-color: rgba(44, 130, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 15px;
             padding: 5px;
             margin-bottom: 10px;
@@ -196,9 +215,11 @@
         }
 
         .camera-box,
-        .image-box,
         .simulator-box {
-            background: white;
+            /* background: white; */
+            background-color: rgba(255, 255, 255, 0.6); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 10px;
             aspect-ratio: 4 / 3;
             width: 100%;
@@ -208,6 +229,24 @@
             justify-content: center;
             overflow: hidden;
             position: relative;
+            margin-top: -2px;
+        }
+
+        .image-box {
+            /* background: white; */
+            background-color: rgba(255, 255, 255, 0.6); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            border-radius: 10px;
+            aspect-ratio: 4 / 3;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            margin-top: -8px;
         }
 
         .camera-box img,
@@ -270,7 +309,10 @@
             transform: translateX(-50%);
             width: 50px;
             height: 50px;
-            background: linear-gradient(45deg, #2c82ff, #0056b3);
+            /* background: linear-gradient(45deg, #2c82ff, rgb(0, 86, 179)); */
+            background-color: rgba(0, 86, 179, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border: none;
             border-radius: 50%;
             display: flex;
@@ -283,17 +325,21 @@
         }
         
         .camera-button:hover {
-            background: linear-gradient(45deg, #0056b3, #004494);
+            /* background: linear-gradient(45deg, #0056b3, rgb(0, 68, 148)); */
+            background-color: rgba(0, 68, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             transform: translateX(-50%) scale(1.1);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
         
         .camera-icon {
-            width: 12px;
-            height: 12px;
+            width: 32px !important;
+            height: 32px !important;
             filter: brightness(0) invert(1);
             object-fit: contain;
             display: block;
+            opacity: 0.75;
         }
 
         .image-controls {
@@ -336,7 +382,9 @@
             padding: 12px;
             border: none;
             border-radius: 10px;
-            background: #2c82ff;
+            background-color: rgba(0, 68, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             color: white;
             font-size: 16px;
             font-weight: bold;
@@ -351,117 +399,137 @@
         }
 
         .controls button:disabled {
-            background: #6c757d;
-            opacity: 0.6;
+            /* background: rgb(108, 117, 125); */
+            background-color: rgba(108, 117, 125, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             cursor: not-allowed;
-            transform: none;
         }
 
         .controls button.green-button {
-            background: linear-gradient(45deg, #28a745, #218838);
+            /* background: linear-gradient(45deg, #28a745, rgb(33, 136, 56)); */
+            background-color: rgba(33, 136, 56, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
         }
 
         .controls .toggle {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start; /* Align items to the left */
-          gap: 10px;
-          background: rgb(241, 241, 241);
-          padding: 12px;
-          border-radius: 10px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-          text-align: left; /* Ensure text aligns properly */
-          padding-left: 34%; /* Add padding to the left for better spacing */
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Align items to the left */
+            gap: 10px;
+            /* background: rgb(241, 241, 241); */
+            background-color: rgba(241, 241, 241, 0.45); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: left; /* Ensure text aligns properly */
+            padding-left: 34%; /* Add padding to the left for better spacing */
         }
 
         .controls .toggle label {
-          color: #333;
-          font-weight: bold;
-          white-space: nowrap; /* Prevent "Mode:" from wrapping */
+            color: #333;
+            font-weight: bold;
+            white-space: nowrap; /* Prevent "Mode:" from wrapping */
         }
 
         .controls .checkbox {
-          display: flex;
-          align-items: center;
-          justify-content: center; /* Align items to the left */
-          gap: 10px;
-          background: rgb(241, 241, 241);
-          padding: 12px;
-          border-radius: 10px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-          text-align: left; /* Ensure text aligns properly */
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Align items to the left */
+            gap: 10px;
+            background-color: rgba(241, 241, 241, 0.45); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: left; /* Ensure text aligns properly */
         }
 
         .controls .checkbox label {
-          color: #333;
-          font-weight: bold;
-          white-space: nowrap; /* Prevent "Mode:" from wrapping */
+            color: #333;
+            font-weight: bold;
+            white-space: nowrap; /* Prevent "Mode:" from wrapping */
         }
 
         #face-toggle-label {
-          flex-grow: 1; /* Allow the "Solo Photo" text to expand */
-          text-align: left; /* Align the text to the left */
-          color: #272727;
-          font-weight: bold;
+            flex-grow: 1; /* Allow the "Solo Photo" text to expand */
+            text-align: left; /* Align the text to the left */
+            color: #272727;
+            font-weight: bold;
         }
 
         .switch {
-          position: relative;
-          display: inline-block;
-          width: 48px;
-          height: 24px;
-          vertical-align: middle;
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            vertical-align: middle;
         }
 
         .switch input {
-          display: none;
+            display: none;
         }
 
         .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          transition: 0.4s;
-          border-radius: 24px;
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
         }
 
         .slider:before {
-          position: absolute;
-          content: "";
-          height: 18px;
-          width: 18px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          transition: 0.4s;
-          border-radius: 50%;
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
         }
 
         input:checked + .slider {
-          background-color: #28a745;
+            background-color: #28a745;
         }
 
         input:checked + .slider:before {
-          transform: translateX(24px);
+            transform: translateX(24px);
+        }
+
+        .progress-wrapper {
+            background-color: rgba(44, 130, 255, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 10px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .progress-status {
             text-align: center;
-            margin-top: 20px;
-            color: #2c82ff;
+            margin-top: 5px;
+            color: #ffffff;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 26px;
         }
 
         .progress-bar {
             width: 100%;
-            height: 6px;
+            height: 8px;
             background: #f0f0f0;
-            border-radius: 3px;
+            border-radius: 4px;
             overflow: hidden;
             margin: 10px 0;
         }
@@ -548,7 +616,7 @@
         }
     </style>
 </head>
-<body onload="checkSketchExists()">
+<body onload="checkCSVExists()">
     <div class="container">
         <!-- Left Column -->
         <div>
@@ -558,7 +626,10 @@
                     <div>
                         <h2>THE SELFIE</h2>
                         <h3>DRAWING</h3>
-                        <h3>ROBOT</h3>
+                        <h4>ROBOT</h4>
+                    </div>
+                    <div>
+                        <image src="logo.png" alt="Pablo Logo" style="width: 100px; height: 80px; margin-top: 4px">
                     </div>
                 </div>
             </div>
@@ -587,13 +658,15 @@
                 </div>
             </div>
 
-            <div class="progress-status">PROGRESS STATUS</div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-wrapper">
+                <div class="progress-status">PROGRESS STATUS</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="loading-spinner" id="loading-spinner"></div>
+                <div class="error-message" id="error-message"></div>
+                <div class="success-message" id="success-message"></div>
             </div>
-            <div class="loading-spinner" id="loading-spinner"></div>
-            <div class="error-message" id="error-message"></div>
-            <div class="success-message" id="success-message"></div>
         </div>
 
         <!-- Center Column -->
@@ -602,7 +675,7 @@
                 <div class="camera-heading">CAMERA</div>
                 <div class="camera-box">
                     <div class="status-indicator active" id="webcam-status"></div>
-                    <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="Camera Feed" />
+                    <img id="webcam-feed" src="http://localhost:5000/video_feed" alt="" />
                     <button class="camera-button" onclick="capturePhoto()">
                         <img src="camera-icon.png" alt="Camera Icon" class="camera-icon">
                     </button>
@@ -617,7 +690,7 @@
                 </div>
                 <div class="image-box">
                     <div class="status-indicator" id="photo-status"></div>
-                    <img id="photo-img" src="http://localhost:5000/image/0_webcam.jpg" alt="Captured Image" />
+                    <img id="photo-img" src="http://localhost:5000/image/0_webcam.jpg" alt="" />
                 </div>
             </div>
         </div>
@@ -631,6 +704,7 @@
                     <iframe
                         id="unity sim"
                         src="http://localhost:8080"
+                        allow="cross-origin"
                         frameborder="0"
                         allowfullscreen>
                     </iframe>
@@ -661,7 +735,7 @@
                     <label for="sketch">Sketch</label>
                 </div>
                 
-                <button id="start-drawing-button" class="grey-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
+                <button id="start-drawing-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
             </div>
         </div>
     </div>
@@ -799,7 +873,7 @@
                         currentImageIndex = 0;
                     }, 2000);
 
-                    checkSketchExists();
+                    checkCSVExists();
                 })
                 .catch(error => {
                     console.error("Error uploading image:", error);
@@ -834,7 +908,7 @@
                         document.getElementById('photo-img').src = 'http://localhost:5000/image/0_webcam.jpg?t=' + new Date().getTime();
                     }, 2000);
 
-                    checkSketchExists();
+                    checkCSVExists();
                 })
                 .catch(error => {
                     console.error("Error:", error);
@@ -852,13 +926,6 @@
                 .then(response => response.text())
                 .then(data => {
                     showLoading(false);
-                    showMessage("🎨 " + data, false);
-                    updateStep(4);
-                    updateProgress(75);
-                    
-                    const startDrawingButton = document.getElementById('start-drawing-button');
-                    startDrawingButton.removeAttribute('disabled');
-                    startDrawingButton.classList.add('green-button');
 
                     setTimeout(() => {
                         const timestamp = new Date().getTime();
@@ -867,6 +934,18 @@
                         document.getElementById('photo-label').textContent = "SKETCH";
                         currentImageIndex = 1;
                     }, 2000);
+
+                    checkSketchExists().then(exists => {
+                        if (exists) {
+                            showMessage("🎨 " + data, false);
+                            updateProgress(65);
+                            updateStep(4);
+                            waitForCSV(); // Poll for sketch existence
+                        } else {
+                            showMessage("❌ Sketch not ready yet" + data, true);
+                        }
+                    });
+                    
                 })
                 .catch(error => {
                     console.error("Error:", error);
@@ -897,46 +976,110 @@
                 });
         }
 
-        function downloadImage(imageId) {
-            const image = document.getElementById(imageId);
-            const photoLabel = document.getElementById('photo-label').textContent;
-            const filename = photoLabel === "SKETCH" ? "sketch.jpg" : "image.jpg";
+        function downloadImage() {
+            const selfieChecked = document.getElementById('selfie').checked;
+            const sketchChecked = document.getElementById('sketch').checked;
 
-            fetch(image.src)
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    link.click();
-                    window.URL.revokeObjectURL(url);
+            // Priority: Sketch > Selfie (if both checked, download sketch)
+            let imageUrl, filename;
+            if (sketchChecked) {
+                imageUrl = "http://localhost:5000/image/2_sketch.jpg";
+                filename = "sketch.jpg";
+            } else if (selfieChecked) {
+                imageUrl = "http://localhost:5000/image/0_webcam.jpg";
+                filename = "image.jpg";
+            } else {
+                showMessage("❌ Please select 'Selfie' or 'Sketch' to download.", true);
+                return;
+            }
+
+            // Check if the image exists before downloading
+            fetch(imageUrl, { method: "HEAD" })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error("Selected image does not exist:", imageUrl);
+                        showMessage("❌ Selected image does not exist.", true);
+                        return;
+                    }
+                    // Proceed to download if exists
+                    fetch(imageUrl)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = filename;
+                            link.click();
+                            window.URL.revokeObjectURL(url);
+                        })
+                        .catch(error => {
+                            console.error("Error downloading the image:", error);
+                            showMessage("❌ Error downloading image", true);
+                        });
                 })
                 .catch(error => {
-                    console.error("Error downloading the image:", error);
-                    showMessage("❌ Error downloading image", true);
+                    console.error("Error checking image existence:", error);
+                    showMessage("❌ Error checking image existence", true);
                 });
         }
 
         function checkSketchExists() {
             const sketchUrl = "http://localhost:5000/image/2_sketch.jpg";
+            return fetch(sketchUrl, { method: "HEAD" })
+                .then(response => response.ok)
+                .catch(() => false);
+        }
+
+        function checkCSVExists() {
+            const sketchUrl = "http://localhost:5000/image/waypoints.csv"; // Check for CSV
 
             fetch(sketchUrl, { method: "HEAD" })
                 .then(response => {
+                    const startDrawingButton = document.getElementById('start-drawing-button');
                     if (response.ok) {
-                        const startDrawingButton = document.getElementById('start-drawing-button');
                         startDrawingButton.removeAttribute('disabled');
                         startDrawingButton.classList.add('green-button');
-                        document.getElementById('photo-img').src = sketchUrl;
-                        document.getElementById('photo-label').textContent = "SKETCH";
+                        // Optionally update UI to indicate the sketch is ready
+                        // Do NOT set photo-img.src to the CSV, since it's not an image
                         currentImageIndex = 1;
                         updateStep(4);
                         updateProgress(75);
                     } else {
-                        console.log("Sketch image does not exist.");
+                        startDrawingButton.setAttribute('disabled', true);
+                        startDrawingButton.classList.remove('green-button');
+                        console.log("waypoints.csv does not exist.");
                     }
                 })
-                .catch(error => console.error("Error checking sketch existence:", error));
+                .catch(error => {
+                    const startDrawingButton = document.getElementById('start-drawing-button');
+                    startDrawingButton.setAttribute('disabled', true);
+                    startDrawingButton.classList.remove('green-button');
+                    console.error("Error checking sketch existence:", error);
+                });
+        }
+
+        function waitForCSV(interval = 2000) {
+            function check() {
+                const sketchUrl = "http://localhost:5000/image/waypoints.csv";
+                fetch(sketchUrl, { method: "HEAD" })
+                    .then(response => {
+                        const startDrawingButton = document.getElementById('start-drawing-button');
+                        if (response.ok) {
+                            startDrawingButton.removeAttribute('disabled');
+                            startDrawingButton.classList.add('green-button');
+                            currentImageIndex = 1;
+                            updateStep(4);
+                            updateProgress(75);
+                            // Stop polling: do not call setTimeout again
+                        } else {
+                            setTimeout(check, interval);
+                        }
+                    })
+                    .catch(error => {
+                        setTimeout(check, interval);
+                    });
+            }
+            check();
         }
 
         function toggleFaceMode() {
@@ -947,9 +1090,24 @@
             fetch("http://localhost:5000/faceToggle", { method: "POST" });
         }
 
+        function syncFaceToggleSwitch() {
+            fetch("http://localhost:5000/faceToggleState")
+                .then(response => response.json())
+                .then(data => {
+                    const toggle = document.getElementById('face-toggle-switch');
+                    const label = document.getElementById('face-toggle-label');
+                    toggle.checked = data.facesToggle;
+                    label.textContent = data.facesToggle ? "Group Photo" : "Solo Photo";
+                })
+                .catch(error => {
+                    console.error("Error fetching face toggle state:", error);
+                });
+        }
+
         // Initialize webcam status as active
         window.onload = function() {
-            checkSketchExists();
+            checkCSVExists();
+            syncFaceToggleSwitch();
             updateStatus('webcam-status', 'active');
             updateStep(1);
         };
