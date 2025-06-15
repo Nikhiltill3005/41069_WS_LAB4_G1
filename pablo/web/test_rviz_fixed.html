@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+    <h1>RViz Live Stream</h1>
+    <video id="video" controls muted style="width: 800px; height: 600px;">
+    </video>
+    <div id="status">Loading...</div>
+    
+    <script>
+        const video = document.getElementById("video");
+        const status = document.getElementById("status");
+        
+        if (Hls.isSupported()) {
+            const hls = new Hls({
+                debug: false,
+                enableWorker: false,
+                
+                // Live streaming optimizations
+                lowLatencyMode: true,
+                liveBackBufferLength: 0,  // Don't keep old segments
+                liveSyncDurationCount: 2, // Stay close to live edge
+                liveMaxLatencyDurationCount: 4,
+                
+                // Buffer management
+                maxBufferLength: 10,      // Small buffer for low latency
+                maxMaxBufferLength: 20,
+                backBufferLength: 0,      // Don't buffer backwards
+                
+                // Error recovery
+                fragLoadingTimeOut: 10000,
+                manifestLoadingTimeOut: 5000,
+                
+                startLevel: 0
+            });
+            
+            hls.loadSource("http://localhost:8080/rviz.m3u8");
+            hls.attachMedia(video);
+            
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                console.log("Live stream manifest loaded");
+                status.innerHTML = "Live stream ready";
+                
+                // For live streams, seek to the end (live edge)
+                setTimeout(() => {
+                    video.currentTime = video.duration - 1;
+                    video.play().then(() => {
+                        status.innerHTML = "Live streaming!";
+                    }).catch((error) => {
+                        console.error("Autoplay failed:", error);
+                        status.innerHTML = "Click to start live stream";
+                        video.addEventListener('click', () => {
+                            video.currentTime = video.duration - 1;
+                            video.play();
+                        });
+                    });
+                }, 1000);
+            });
+            
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                console.error("HLS Error:", data);
+                
+                if (data.fatal) {
+                    switch(data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.log("Network error, trying to recover...");
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.log("Media error, trying to recover...");
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            console.log("Fatal error, reloading stream...");
+                            hls.destroy();
+                            // Could auto-reload here
+                            break;
+                    }
+                } else if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
+                    // Ignore fragment load errors for live streams (404s)
+                    console.log("Fragment load error (normal for live streams)");
+                }
+            });
+            
+            // Keep seeking to live edge periodically
+            setInterval(() => {
+                if (video.duration && !video.paused) {
+                    const liveEdge = video.duration - 2;
+                    if (video.currentTime < liveEdge - 5) {
+                        console.log("Seeking to live edge");
+                        video.currentTime = liveEdge;
+                    }
+                }
+            }, 5000);
+            
+        } else {
+            status.innerHTML = "HLS not supported in this browser";
+        }
+    </script>
+</body>
+</html>
