@@ -5,6 +5,7 @@ from launch.substitutions import LaunchConfiguration, TextSubstitution, Environm
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
+from launch.launch_description_sources import AnyLaunchDescriptionSource
 import os
 
 def generate_launch_description():
@@ -96,14 +97,29 @@ def generate_launch_description():
         name='ur3e_control',
         output='screen'
     )
-    
-    # Launch HTML website
-    launch_pablo_website = ExecuteProcess(
-        cmd=['xdg-open', '/home/niku/git/41069_WS_LAB4_G1/pablo/web/pablo3.html'],
-        output='screen',
-        condition=IfCondition(launch_website)
+
+    # Launch ROSBridge Server
+    rosbridge_server = IncludeLaunchDescription(
+        AnyLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('rosbridge_server'), 'launch', 'rosbridge_websocket.launch.xml')
+        )
     )
-    
+
+    # Start Python Server
+    python_server = ExecuteProcess(
+        cmd=['python3', '-m', 'http.server', '8080'],
+        output='screen',
+        cwd=os.path.join(get_package_share_directory('pablo'), 'web')
+    )
+
+    # Load Webpage GUI
+    launch_pablo_website = ExecuteProcess(
+        # cmd=['xdg-open', '/home/edan/git/41069_WS_LAB4_G1/pablo/web/pablo3.html'],
+        cmd=['xdg-open', os.path.join(get_package_share_directory('pablo'), 'web', 'pabloUI.html')],
+        output='screen',
+        # condition=IfCondition(launch_website)
+    )
+
     # Log info message
     log_info = LogInfo(
         msg=['Launching UR3e with Pablo nodes and website']
@@ -125,7 +141,9 @@ def generate_launch_description():
         # Pablo nodes
         image_processor_node,
         path_planning_node,
-        # ur3e_control_node (uncommented if needed)
+        # ur3e_control_node # (uncommented if needed)
         # Launch website
-        launch_pablo_website
+        # rosbridge_server,
+        python_server
+        # launch_pablo_website
     ])

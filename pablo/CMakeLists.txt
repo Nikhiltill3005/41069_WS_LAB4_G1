@@ -35,4 +35,10 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Add web directory to the package
+install(
+  DIRECTORY web/
+  DESTINATION share/${PROJECT_NAME}/web
+)
+
 ament_package() # Ament package
