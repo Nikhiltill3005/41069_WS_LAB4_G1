@@ -31,11 +31,11 @@ class ImageProcessor(Node):
 
         # Load Dlib face detector
         self.detector = dlib.get_frontal_face_detector()
-        model_path = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/models/shape_predictor_68_face_landmarks.dat")
+        model_path = os.path.expanduser("~/git/41069_WS_LAB4_G1/pablo/dlib/shape_predictor_68_face_landmarks.dat")
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
-        self.cap = cv2.VideoCapture(0) # 0 for default camera, 1/2 for external camera
+        self.cap = cv2.VideoCapture(2) # 0 for default camera, 1/2 for external camera
         self.current_frame = None
 
         # Start Flask server in a separate thread

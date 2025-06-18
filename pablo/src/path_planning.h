@@ -79,11 +79,23 @@ private:
      */
         void saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contourwaypoints, 
             const std::string& directory, const std::string& filename);
+
+    /**
+     * @brief Creates visualization overlays to verify contours follow the original white lines.
+     * 
+     * @param originalImage The original grayscale image with white lines
+     * @param contours Vector of extracted contours
+     * @param contour_order Order in which contours will be drawn
+     */
+        void visualizeContourOverlay(const cv::Mat& originalImage, 
+                                   const std::vector<std::vector<cv::Point>>& contours,
+                                   const std::vector<int>& contour_order);
         
     // === Parameters and State === //
     
-    std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
+    // std::string csvDirectory_ = "/home/sachinhanel/git/41069_WS_LAB4_G1/pablo/output";
     // std::string csvDirectory_ = "/home/niku/git/41069_WS_LAB4_G1/pablo/output";
+    std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output";
     std::string csvFilename_ = "waypoints.csv";
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr imageProcessorSub_;

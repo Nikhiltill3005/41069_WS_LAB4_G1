@@ -1,5 +1,464 @@
 #include "path_planning.h"
 #include <filesystem>
+#include <queue>
+#include <set>
+
+// Custom Line Contour Extractor Class
+class LineContourExtractor {
+public:
+    struct Point {
+        int x, y;
+        Point(int x = 0, int y = 0) : x(x), y(y) {}
+        
+        bool operator<(const Point& other) const {
+            return x < other.x || (x == other.x && y < other.y);
+        }
+        
+        double distanceTo(const Point& other) const {
+            return std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y));
+        }
+        
+        // Conversion to cv::Point
+        cv::Point toCvPoint() const {
+            return cv::Point(x, y);
+        }
+    };
+    
+    using Contour = std::vector<Point>;
+    using ContourList = std::vector<Contour>;
+
+private:
+    // 8-connectivity neighbors (including diagonals)
+    const std::vector<Point> neighbors = {
+        {-1, -1}, {-1, 0}, {-1, 1},
+        {0, -1},           {0, 1},
+        {1, -1},  {1, 0},  {1, 1}
+    };
+    
+    int whiteThreshold;
+    int minContourLength;
+    
+public:
+    LineContourExtractor(int whiteThreshold = 200, int minContourLength = 10)
+        : whiteThreshold(whiteThreshold), minContourLength(minContourLength) {}
+    
+    /**
+     * Extract contours and convert to cv::Point format for compatibility
+     */
+    std::vector<std::vector<cv::Point>> extractContoursAsCvPoints(const cv::Mat& image) {
+        ContourList contours = extractContours(image);
+        
+        // Convert to cv::Point format for compatibility with existing code
+        std::vector<std::vector<cv::Point>> cvContours;
+        for (const auto& contour : contours) {
+            std::vector<cv::Point> cvContour;
+            for (const auto& point : contour) {
+                cvContour.push_back(point.toCvPoint());
+            }
+            cvContours.push_back(cvContour);
+        }
+        
+        return cvContours;
+    }
+
+private:
+    /**
+     * Extract contours from white lines on black background
+     */
+    ContourList extractContours(const cv::Mat& image) {
+        cv::Mat grayImage;
+        
+        // Convert to grayscale if needed
+        if (image.channels() == 3) {
+            cv::cvtColor(image, grayImage, cv::COLOR_BGR2GRAY);
+        } else {
+            grayImage = image.clone();
+        }
+        
+        // Create binary mask for white pixels
+        cv::Mat whiteMask;
+        cv::threshold(grayImage, whiteMask, whiteThreshold, 255, cv::THRESH_BINARY);
+        
+        // Skeletonize the binary image to ensure 1-pixel thick lines
+        cv::Mat skeletonized = skeletonize(whiteMask);
+        
+        // Track visited pixels
+        cv::Mat visited = cv::Mat::zeros(skeletonized.size(), CV_8UC1);
+        
+        ContourList contours;
+        
+        // Scan through all pixels
+        for (int y = 0; y < skeletonized.rows; ++y) {
+            for (int x = 0; x < skeletonized.cols; ++x) {
+                if (skeletonized.at<uchar>(y, x) > 0 && visited.at<uchar>(y, x) == 0) {
+                    // Found unvisited white pixel
+                    Contour component = extractConnectedComponent(Point(x, y), skeletonized, visited);
+                    
+                    if (component.size() >= minContourLength) {
+                        // Break component into line segments to avoid gaps
+                        std::vector<Contour> lineSegments = orderPixelsAsLineSegments(component);
+                        
+                        // Add each segment as a separate contour if it's long enough
+                        for (const auto& segment : lineSegments) {
+                            if (segment.size() >= minContourLength) {
+                                contours.push_back(segment);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return contours;
+    }
+    
+    /**
+     * Skeletonize binary image using morphological thinning
+     * Reduces all white lines to 1-pixel thickness while preserving connectivity
+     */
+    cv::Mat skeletonize(const cv::Mat& binaryImage) {
+        cv::Mat skeleton = cv::Mat::zeros(binaryImage.size(), CV_8UC1);
+        cv::Mat temp, eroded;
+        
+        cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
+        
+        binaryImage.copyTo(temp);
+        
+        bool done = false;
+        while (!done) {
+            cv::erode(temp, eroded, element);
+            cv::dilate(eroded, temp, element);
+            cv::subtract(binaryImage, temp, temp);
+            cv::bitwise_or(skeleton, temp, skeleton);
+            eroded.copyTo(temp);
+            
+            done = (cv::countNonZero(temp) == 0);
+        }
+        
+        // Alternative implementation using Zhang-Suen algorithm for better results
+        return zhangSuenThinning(binaryImage);
+    }
+    
+    /**
+     * Zhang-Suen thinning algorithm for better skeletonization
+     * This produces cleaner single-pixel skeletons than morphological operations
+     */
+    cv::Mat zhangSuenThinning(const cv::Mat& binaryImage) {
+        cv::Mat img = binaryImage.clone();
+        img /= 255; // Convert to 0 and 1
+        
+        cv::Mat prev = cv::Mat::zeros(img.size(), CV_8UC1);
+        cv::Mat diff;
+        
+        do {
+            zhangSuenThinningIteration(img, 0);
+            zhangSuenThinningIteration(img, 1);
+            cv::absdiff(img, prev, diff);
+            img.copyTo(prev);
+        } while (cv::countNonZero(diff) > 0);
+        
+        img *= 255; // Convert back to 0 and 255
+        return img;
+    }
+    
+    /**
+     * Single iteration of Zhang-Suen thinning
+     */
+    void zhangSuenThinningIteration(cv::Mat& img, int iter) {
+        cv::Mat marker = cv::Mat::zeros(img.size(), CV_8UC1);
+        
+        for (int i = 1; i < img.rows - 1; i++) {
+            for (int j = 1; j < img.cols - 1; j++) {
+                uchar p2 = img.at<uchar>(i-1, j);
+                uchar p3 = img.at<uchar>(i-1, j+1);
+                uchar p4 = img.at<uchar>(i, j+1);
+                uchar p5 = img.at<uchar>(i+1, j+1);
+                uchar p6 = img.at<uchar>(i+1, j);
+                uchar p7 = img.at<uchar>(i+1, j-1);
+                uchar p8 = img.at<uchar>(i, j-1);
+                uchar p9 = img.at<uchar>(i-1, j-1);
+                
+                int A = (p2 == 0 && p3 == 1) + (p3 == 0 && p4 == 1) + 
+                        (p4 == 0 && p5 == 1) + (p5 == 0 && p6 == 1) + 
+                        (p6 == 0 && p7 == 1) + (p7 == 0 && p8 == 1) +
+                        (p8 == 0 && p9 == 1) + (p9 == 0 && p2 == 1);
+                int B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+                int m1 = iter == 0 ? (p2 * p4 * p6) : (p2 * p4 * p8);
+                int m2 = iter == 0 ? (p4 * p6 * p8) : (p2 * p6 * p8);
+                
+                if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
+                    marker.at<uchar>(i,j) = 1;
+            }
+        }
+        
+        img &= ~marker;
+    }
+    
+    /**
+     * Get valid unvisited white neighbors for a pixel
+     */
+    std::vector<Point> getValidNeighbors(const Point& point, const cv::Mat& whiteMask, const cv::Mat& visited) {
+        std::vector<Point> validNeighbors;
+        
+        for (const Point& neighbor : neighbors) {
+            Point newPoint(point.x + neighbor.x, point.y + neighbor.y);
+            
+            if (newPoint.x >= 0 && newPoint.x < whiteMask.cols &&
+                newPoint.y >= 0 && newPoint.y < whiteMask.rows &&
+                whiteMask.at<uchar>(newPoint.y, newPoint.x) > 0 &&
+                visited.at<uchar>(newPoint.y, newPoint.x) == 0) {
+                validNeighbors.push_back(newPoint);
+            }
+        }
+        
+        return validNeighbors;
+    }
+    
+    /**
+     * Extract connected component using BFS
+     */
+    Contour extractConnectedComponent(const Point& startPoint, const cv::Mat& whiteMask, cv::Mat& visited) {
+        Contour component;
+        std::queue<Point> queue;
+        
+        queue.push(startPoint);
+        visited.at<uchar>(startPoint.y, startPoint.x) = 255;
+        
+        while (!queue.empty()) {
+            Point current = queue.front();
+            queue.pop();
+            component.push_back(current);
+            
+            std::vector<Point> validNeighbors = getValidNeighbors(current, whiteMask, visited);
+            for (const Point& neighbor : validNeighbors) {
+                visited.at<uchar>(neighbor.y, neighbor.x) = 255;
+                queue.push(neighbor);
+            }
+        }
+        
+        return component;
+    }
+    
+    /**
+     * Count neighbors within distance 1.5 for endpoint detection
+     */
+    int countCloseNeighbors(const Point& point, const Contour& points) {
+        int count = 0;
+        for (const Point& other : points) {
+            if (point.x != other.x || point.y != other.y) {  // Skip self
+                double distance = point.distanceTo(other);
+                if (distance <= 1.5) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Order pixels to form continuous line segments, breaking at large gaps
+     */
+    std::vector<Contour> orderPixelsAsLineSegments(const Contour& pixels) {
+        if (pixels.size() <= 2) {
+            return {pixels};
+        }
+        
+        const double MAX_CONNECTION_DISTANCE = 2.5; // Maximum distance to connect pixels
+        
+        // Find potential endpoints (points with fewer neighbors)
+        std::vector<std::pair<size_t, int>> endpointCandidates;
+        for (size_t i = 0; i < pixels.size(); ++i) {
+            int neighborCount = countCloseNeighbors(pixels[i], pixels);
+            if (neighborCount <= 2) {
+                endpointCandidates.push_back({i, neighborCount});
+            }
+        }
+        
+        // Choose starting point
+        size_t startIdx = 0;
+        if (!endpointCandidates.empty()) {
+            // Start from point with fewest neighbors
+            auto minElement = std::min_element(endpointCandidates.begin(), endpointCandidates.end(),
+                [](const std::pair<size_t, int>& a, const std::pair<size_t, int>& b) {
+                    return a.second < b.second;
+                });
+            startIdx = minElement->first;
+        }
+        
+        // Greedy path construction with gap detection
+        std::vector<Contour> lineSegments;
+        Contour currentSegment;
+        std::set<size_t> remainingIndices;
+        for (size_t i = 0; i < pixels.size(); ++i) {
+            remainingIndices.insert(i);
+        }
+        
+        size_t currentIdx = startIdx;
+        
+        while (!remainingIndices.empty()) {
+            currentSegment.push_back(pixels[currentIdx]);
+            remainingIndices.erase(currentIdx);
+            
+            if (remainingIndices.empty()) {
+                // Add the final segment
+                if (!currentSegment.empty()) {
+                    lineSegments.push_back(currentSegment);
+                }
+                break;
+            }
+            
+            // Find closest remaining point
+            Point currentPoint = pixels[currentIdx];
+            double minDistance = std::numeric_limits<double>::max();
+            size_t closestIdx = *remainingIndices.begin();
+            
+            for (size_t idx : remainingIndices) {
+                double distance = currentPoint.distanceTo(pixels[idx]);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestIdx = idx;
+                }
+            }
+            
+            // Check if the closest point is too far away
+            if (minDistance > MAX_CONNECTION_DISTANCE) {
+                // Gap detected - finish current segment and start a new one
+                if (!currentSegment.empty()) {
+                    lineSegments.push_back(currentSegment);
+                    currentSegment.clear();
+                }
+                
+                // Find the best starting point for the next segment
+                // Prefer endpoints from the remaining candidates
+                bool foundEndpoint = false;
+                for (const auto& candidate : endpointCandidates) {
+                    if (remainingIndices.count(candidate.first)) {
+                        currentIdx = candidate.first;
+                        foundEndpoint = true;
+                        break;
+                    }
+                }
+                
+                if (!foundEndpoint) {
+                    // No endpoint candidates left, just use the first remaining point
+                    currentIdx = *remainingIndices.begin();
+                }
+            } else {
+                // Continue with the closest point
+                currentIdx = closestIdx;
+            }
+        }
+        
+        return lineSegments;
+    }
+};
+
+void pathPlanning::visualizeContourOverlay(const cv::Mat& originalImage, 
+                                         const std::vector<std::vector<cv::Point>>& contours,
+                                         const std::vector<int>& contour_order) {
+    // Create visualization images
+    cv::Mat overlayImage, colorCodedImage;
+    
+    // Convert grayscale to BGR for colored overlay
+    if (originalImage.channels() == 1) {
+        cv::cvtColor(originalImage, overlayImage, cv::COLOR_GRAY2BGR);
+        cv::cvtColor(originalImage, colorCodedImage, cv::COLOR_GRAY2BGR);
+    } else {
+        overlayImage = originalImage.clone();
+        colorCodedImage = originalImage.clone();
+    }
+    
+    // 1. Simple overlay - draw all contours in bright red on original image
+    std::cout << "Creating simple contour overlay..." << std::endl;
+    for (const auto& contour : contours) {
+        for (size_t i = 1; i < contour.size(); ++i) {
+            cv::line(overlayImage, contour[i-1], contour[i], cv::Scalar(0, 0, 255), 1); // Bright red
+        }
+        // Mark start points with green circles
+        if (!contour.empty()) {
+            cv::circle(overlayImage, contour[0], 2, cv::Scalar(0, 255, 0), -1); // Green start point
+        }
+        // Mark end points with blue circles
+        if (contour.size() > 1) {
+            cv::circle(overlayImage, contour.back(), 2, cv::Scalar(255, 0, 0), -1); // Blue end point
+        }
+    }
+    
+    // 2. Color-coded overlay - show drawing order with gradient colors
+    std::cout << "Creating color-coded contour overlay..." << std::endl;
+    for (size_t i = 0; i < contour_order.size(); ++i) {
+        int idx = contour_order[i];
+        
+        // Generate color based on drawing order (gradient from blue to red)
+        float progress = static_cast<float>(i) / std::max(1.0f, static_cast<float>(contour_order.size() - 1));
+        int blue = static_cast<int>(255 * (1.0f - progress));
+        int red = static_cast<int>(255 * progress);
+        cv::Scalar color(blue, 0, red);
+        
+        const auto& contour = contours[idx];
+        
+        // Draw contour as connected lines
+        for (size_t j = 1; j < contour.size(); ++j) {
+            cv::line(colorCodedImage, contour[j-1], contour[j], color, 2);
+        }
+        
+        // Add contour number label
+        if (!contour.empty()) {
+            cv::Point center = contour[0];
+            cv::putText(colorCodedImage, std::to_string(i), center, 
+                       cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255, 255, 255), 1);
+        }
+    }
+    
+    // 3. Side-by-side comparison
+    cv::Mat comparison;
+    cv::hconcat(overlayImage, colorCodedImage, comparison);
+    
+    // Add labels
+    cv::putText(comparison, "Contours on Original (Red=Lines, Green=Start, Blue=End)", 
+               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 2);
+    cv::putText(comparison, "Drawing Order (Blue->Red = First->Last)", 
+               cv::Point(overlayImage.cols + 10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255), 2);
+    
+    // Save visualization images
+    std::filesystem::path output_dir(csvDirectory_);
+    
+    cv::imwrite((output_dir / "contour_overlay_simple.png").string(), overlayImage);
+    cv::imwrite((output_dir / "contour_overlay_ordered.png").string(), colorCodedImage);
+    cv::imwrite((output_dir / "contour_comparison.png").string(), comparison);
+    
+    std::cout << "Visualization images saved:" << std::endl;
+    std::cout << "  - Simple overlay: " << (output_dir / "contour_overlay_simple.png").string() << std::endl;
+    std::cout << "  - Ordered overlay: " << (output_dir / "contour_overlay_ordered.png").string() << std::endl;
+    std::cout << "  - Side-by-side comparison: " << (output_dir / "contour_comparison.png").string() << std::endl;
+    
+    // Optional: Display images (uncomment if you want to see them during execution)
+    /*
+    cv::imshow("Contour Verification", comparison);
+    cv::waitKey(3000); // Show for 3 seconds
+    cv::destroyAllWindows();
+    */
+    
+    // Print verification statistics
+    std::cout << "\n=== CONTOUR VERIFICATION STATS ===" << std::endl;
+    std::cout << "Total contours extracted: " << contours.size() << std::endl;
+    
+    size_t total_points = 0;
+    size_t min_points = std::numeric_limits<size_t>::max();
+    size_t max_points = 0;
+    
+    for (const auto& contour : contours) {
+        total_points += contour.size();
+        min_points = std::min(min_points, contour.size());
+        max_points = std::max(max_points, contour.size());
+    }
+    
+    std::cout << "Total points across all contours: " << total_points << std::endl;
+    std::cout << "Average points per contour: " << (contours.empty() ? 0 : total_points / contours.size()) << std::endl;
+    std::cout << "Shortest contour: " << (contours.empty() ? 0 : min_points) << " points" << std::endl;
+    std::cout << "Longest contour: " << (contours.empty() ? 0 : max_points) << " points" << std::endl;
+    std::cout << "=================================" << std::endl;
+};
 
 pathPlanning::pathPlanning() : Node("path_planning") {
     RCLCPP_INFO(this->get_logger(), "Path Planning Node Started");
@@ -50,19 +509,13 @@ void pathPlanning::tspSolver(){
         return;
     }
 
-    // Apply binary threshold instead of Canny since the image is already edge-detected
-    cv::Mat edges;
-    cv::threshold(image, edges, 128, 255, cv::THRESH_BINARY);
+    // REPLACED: Use custom line contour extractor instead of OpenCV's findContours
+    LineContourExtractor extractor(128, 5);  // white_threshold=128, min_contour_length=5
+    std::vector<std::vector<cv::Point>> contours = extractor.extractContoursAsCvPoints(image);
     
-    // Find contours in the thresholded image 
-    // Using RETR_LIST instead of RETR_EXTERNAL to get all contours including inner ones
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
-    cv::findContours(edges, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
-    
-    std::cout << "Initial contour count: " << contours.size() << std::endl;
+    std::cout << "Initial contour count (custom extractor with skeletonization): " << contours.size() << std::endl;
 
-    // Filter out very small contours
+    // Filter out very small contours (keeping your existing filter)
     std::vector<std::vector<cv::Point>> filtered_contours;
     for (const auto& contour : contours) {
         if (contour.size() > 5) {  // Filter contours with fewer than 5 points
@@ -266,6 +719,7 @@ void pathPlanning::tspSolver(){
     // Process all contours in optimal order to minimize jumps
     std::vector<int> contour_order;
     std::vector<bool> processed_contours(contours.size(), false);
+    std::vector<bool> contour_reversed(contours.size(), false); // Track if contour is reversed
     
     // Vector to store waypoints grouped by contour
     std::vector<std::vector<Waypoint>> contour_waypoints;
@@ -275,7 +729,7 @@ void pathPlanning::tspSolver(){
     contour_order.push_back(current_contour_idx);
     processed_contours[current_contour_idx] = true;
     
-    // Add first contour's points to waypoints
+    // Add first contour's points to waypoints (never reversed)
     std::vector<Waypoint> first_contour_waypoints;
     const auto& first_contour = contours[current_contour_idx];
     if (!first_contour.empty()) {
@@ -290,57 +744,100 @@ void pathPlanning::tspSolver(){
     }
     contour_waypoints.push_back(first_contour_waypoints);
     
-    // Process all contours in optimal order to minimize jumps
+    // Process remaining contours with intelligent ordering
     int contours_processed = 1;  // Already processed the first one
     while (contours_processed < contours.size()) {
-        // Get the last point of the current contour (endpoint)
-        cv::Point current_endpoint = contours[current_contour_idx].back();
+        // Get the endpoint of the current contour (considering if it was reversed)
+        cv::Point current_endpoint;
+        if (contour_reversed[current_contour_idx]) {
+            current_endpoint = contours[current_contour_idx].front(); // Reversed, so end is original start
+        } else {
+            current_endpoint = contours[current_contour_idx].back();  // Normal direction
+        }
         
-        // Find the closest startpoint of an unprocessed contour
+        // Find the optimal next contour and connection type
         float min_distance = std::numeric_limits<float>::max();
-        int closest_contour_idx = -1;
-        cv::Point closest_start_point;
+        int best_contour_idx = -1;
+        bool should_reverse_next = false;
+        cv::Point best_start_point;
         
         for (size_t i = 0; i < contours.size(); ++i) {
             if (!processed_contours[i] && !contours[i].empty()) {
-                // Check distance to the start point of this contour
-                float dist = calculateDistance(current_endpoint, contours[i][0]);
-                if (dist < min_distance) {
-                    min_distance = dist;
-                    closest_contour_idx = i;
-                    closest_start_point = contours[i][0];
+                const auto& candidate_contour = contours[i];
+                
+                // Option 1: Connect to start of candidate (normal direction)
+                float dist_to_start = calculateDistance(current_endpoint, candidate_contour.front());
+                
+                // Option 2: Connect to end of candidate (reverse direction)
+                float dist_to_end = calculateDistance(current_endpoint, candidate_contour.back());
+                
+                // Choose the best option for this candidate
+                if (dist_to_start <= dist_to_end) {
+                    // Normal direction is better
+                    if (dist_to_start < min_distance) {
+                        min_distance = dist_to_start;
+                        best_contour_idx = i;
+                        should_reverse_next = false;
+                        best_start_point = candidate_contour.front();
+                    }
+                } else {
+                    // Reverse direction is better
+                    if (dist_to_end < min_distance) {
+                        min_distance = dist_to_end;
+                        best_contour_idx = i;
+                        should_reverse_next = true;
+                        best_start_point = candidate_contour.back(); // This becomes the start when reversed
+                    }
                 }
             }
         }
         
-        if (closest_contour_idx != -1) {
+        if (best_contour_idx != -1) {
             // Record the jump
             jump_count++;
             total_jump_distance += min_distance;
-            jump_points.push_back(std::make_pair(current_endpoint, closest_start_point));
+            jump_points.push_back(std::make_pair(current_endpoint, best_start_point));
             
             std::cout << "Jump #" << jump_count << ": From contour " << current_contour_idx 
-                    << " to contour " << closest_contour_idx
-                    << " (distance: " << min_distance << " pixels)" << std::endl;
+                    << " to contour " << best_contour_idx
+                    << " (distance: " << min_distance << " pixels)"
+                    << (should_reverse_next ? " [REVERSED]" : " [NORMAL]") << std::endl;
             
-            // Create waypoints for this contour
+            // Create waypoints for this contour (considering direction)
             std::vector<Waypoint> contour_points;
-            const auto& closest_contour = contours[closest_contour_idx];
+            const auto& best_contour = contours[best_contour_idx];
             
-            // Add first point (with jump distance)
-            contour_points.push_back(Waypoint(closest_start_point.x, closest_start_point.y, 0.0, min_distance));
-            
-            // Add remaining points
-            for (size_t i = 1; i < closest_contour.size(); ++i) {
-                float dist = calculateDistance(closest_contour[i-1], closest_contour[i]);
-                contour_points.push_back(Waypoint(closest_contour[i].x, closest_contour[i].y, 0.0, dist));
+            if (should_reverse_next) {
+                // Add points in reverse order
+                contour_reversed[best_contour_idx] = true;
+                
+                // Add first point (which is the original last point)
+                contour_points.push_back(Waypoint(best_contour.back().x, best_contour.back().y, 0.0, min_distance));
+                
+                // Add remaining points in reverse order
+                for (int i = best_contour.size() - 2; i >= 0; --i) {
+                    float dist = calculateDistance(best_contour[i+1], best_contour[i]);
+                    contour_points.push_back(Waypoint(best_contour[i].x, best_contour[i].y, 0.0, dist));
+                }
+            } else {
+                // Add points in normal order
+                contour_reversed[best_contour_idx] = false;
+                
+                // Add first point
+                contour_points.push_back(Waypoint(best_contour.front().x, best_contour.front().y, 0.0, min_distance));
+                
+                // Add remaining points
+                for (size_t i = 1; i < best_contour.size(); ++i) {
+                    float dist = calculateDistance(best_contour[i-1], best_contour[i]);
+                    contour_points.push_back(Waypoint(best_contour[i].x, best_contour[i].y, 0.0, dist));
+                }
             }
             
             // Add this contour's waypoints to the list
             contour_waypoints.push_back(contour_points);
             
             // Update current contour and mark as processed
-            current_contour_idx = closest_contour_idx;
+            current_contour_idx = best_contour_idx;
             contour_order.push_back(current_contour_idx);
             processed_contours[current_contour_idx] = true;
             contours_processed++;
@@ -351,16 +848,30 @@ void pathPlanning::tspSolver(){
         }
     }
     
-    // Print jump statistics to console
+    // Print jump statistics to console with reversal info
     std::cout << "----------------------------------------" << std::endl;
     std::cout << "Total jumps detected: " << jump_count << std::endl;
     std::cout << "Total jump distance: " << total_jump_distance << " pixels" << std::endl;
     std::cout << "Average jump distance: " << (jump_count > 0 ? total_jump_distance / jump_count : 0) << " pixels" << std::endl;
     std::cout << "Optimal contour order: ";
-    for (int idx : contour_order) {
-        std::cout << idx << " ";
+    for (size_t i = 0; i < contour_order.size(); ++i) {
+        int idx = contour_order[i];
+        std::cout << idx;
+        if (i > 0 && contour_reversed[idx]) {
+            std::cout << "R"; // Mark reversed contours
+        }
+        std::cout << " ";
     }
     std::cout << std::endl;
+    
+    // Count how many contours were reversed for efficiency
+    int reversed_count = 0;
+    for (size_t i = 1; i < contour_order.size(); ++i) { // Skip first contour (never reversed)
+        if (contour_reversed[contour_order[i]]) {
+            reversed_count++;
+        }
+    }
+    std::cout << "Contours reversed for efficiency: " << reversed_count << " out of " << (contour_order.size() - 1) << std::endl;
     std::cout << "----------------------------------------" << std::endl;
 
     // Draw the robot's path on the original image
@@ -392,7 +903,8 @@ void pathPlanning::tspSolver(){
     // Save waypoints to CSV with pen up/down movements
     saveWaypointsToFile(contour_waypoints, csvDirectory_, csvFilename_);
     
-    // Optional visualization code is kept commented out as in the original
+    // Visualization: Create overlay to verify contours follow the white lines
+    visualizeContourOverlay(image, contours, contour_order);
 }
 
 float pathPlanning::calculateDistance(const cv::Point& p1, const cv::Point& p2) {
