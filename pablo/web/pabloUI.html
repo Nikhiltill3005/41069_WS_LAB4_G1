@@ -43,7 +43,7 @@
 
         .container {
             display: grid;
-            grid-template-columns: 1.2fr 1fr 1.2fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 30px;
             padding: 10px;
             flex: 1 0 auto;
@@ -137,7 +137,9 @@
         }
 
         .how-to .step {
-            background: white;
+            background-color: rgba(255, 255, 255, 0.3); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 10px;
             padding: 12px;
             margin-bottom: 0px;
@@ -151,14 +153,18 @@
         }
 
         .how-to .step.active {
-            background: #e7f3ff;
+            background-color: rgba(231, 243, 255, 0.7); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-left: 4px solid #FF6D00;
             transform: translateX(5px);
             width: 94.6%;
         }
 
         .how-to .step.completed {
-            background: #e8f5e8;
+            background-color: rgba(232, 245, 232, 0.6); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-left: 4px solid #28a745;
             width: 95.4%;
         }
@@ -200,7 +206,8 @@
 
         .camera-wrapper,
         .image-wrapper,
-        .simulator-wrapper {
+        .simulator-wrapper,
+        .bts-wrapper {
             background-color: rgba(44, 130, 255, 0.3); /* Transparent white */
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px); /* For Safari */
@@ -213,7 +220,8 @@
 
         .camera-heading,
         .image-heading,
-        .simulator-heading {
+        .simulator-heading,
+        .bts-heading {
             color: white;
             font-weight: bold;
             margin-bottom: 5px;
@@ -239,7 +247,8 @@
             margin-top: -2px;
         }
 
-        .image-box {
+        .image-box,
+        .bts-box {
             /* background: white; */
             background-color: rgba(255, 255, 255, 0.6); /* Transparent white */
             backdrop-filter: blur(10px);
@@ -256,8 +265,25 @@
             margin-top: -8px;
         }
 
+        #csv-scrollbox {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.98);
+            border-radius: 10px;
+            margin: 0;
+            padding: 0px;
+            font-size: 14px;
+            overflow: auto;
+            z-index: 2;
+            box-sizing: border-box;
+        }
+
         .camera-box img,
-        .image-box img{
+        .image-box img,
+        .bts-box img {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -390,11 +416,12 @@
             -webkit-backdrop-filter: blur(610x);
             border-radius: 12px;
             padding: 18px 14px;
-            margin-top: 12px;
+            margin-top: 0px;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2), inset 0 4px 20px rgba(44,130,255,0.3);
             display: flex;
             flex-direction: column;
             gap: 12px;
+            margin-bottom: 10px;
         }
 
         .controls {
@@ -440,7 +467,7 @@
 
         .controls .toggle {
             display: flex;
-            align-items: center;
+            align-items: left;
             justify-content: flex-start; /* Align items to the left */
             gap: 10px;
             /* background: rgb(241, 241, 241); */
@@ -451,7 +478,7 @@
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             text-align: left; /* Ensure text aligns properly */
-            padding-left: 34%; /* Add padding to the left for better spacing */
+            
         }
 
         .controls .toggle label {
@@ -547,7 +574,7 @@
             margin-top: 5px;
             color: #ffffff;
             font-weight: bold;
-            font-size: 26px;
+            font-size: 20px;
         }
 
         .progress-bar {
@@ -602,6 +629,37 @@
 
         input[type="file"] {
             display: none;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-row button,
+        .button-row .checkbox {
+            flex: 1 1 0;
+            height: 48px; /* Match the button height, adjust as needed */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .button-row .checkbox {
+            /* Remove fixed width, stretch to fill */
+            padding: 0 12px;
+            background-color: rgba(241, 241, 241, 0.45);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            gap: 10px;
+        }
+
+        .button-row .checkbox label {
+            margin: 0 4px 0 2px;
+            color: #333;
+            font-weight: bold;
+            white-space: nowrap;
         }
 
         .footer-wrapper {
@@ -677,13 +735,13 @@
                         <h4>ROBOT</h4>
                     </div>
                     <div>
-                        <image src="logo.png" alt="Pablo Logo" style="width: 100px; height: 80px; margin-top: 4px">
+                        <image src="logo.png" alt="Pablo Logo" style="width: 80px; height: 80px; margin-top: 4px">
                     </div>
                 </div>
             </div>
 
             <div class="how-to">
-                <h2>USER MANUAL</h2>
+                <h2>USER GUIDE</h2>
                 <div class="step active" id="step1">
                     <div class="step-circle">1</div>
                     <div class="step-text">Click the <strong>camera button</strong> to capture a selfie, or <strong>upload</strong> your own image.</div>
@@ -710,7 +768,33 @@
                 </div>
             </div>
 
-            
+            <div class="controls">
+                <div class="button-wrapper">
+                    <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
+                    <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
+                    <div class="button-row">
+                        <div class="checkbox">
+                            <label>MODE:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="face-toggle-switch" onchange="toggleFaceMode()">
+                                <span class="slider"></span>
+                            </label>
+                            <span id="face-toggle-label">Solo Photo</span>
+                        </div>
+                        <button onclick="processPhoto()">🖼️ Generate Sketch</button>
+                    </div>
+                    <div class="button-row">
+                        <div class="checkbox">
+                            <input type="checkbox" id="selfie" checked>
+                            <label for="selfie">Selfie</label>
+                            <input type="checkbox" id="sketch" checked>
+                            <label for="sketch">Sketch</label>
+                        </div>
+                        <button onclick="downloadImage('photo-img')">💾 Download</button>
+                    </div>  
+                    <button id="start-drawing-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
+                </div>
+            </div>
 
             <div class="progress-wrapper">
                 <div class="progress-status">PROGRESS STATUS</div>
@@ -736,15 +820,15 @@
                 </div>
             </div>
 
-            <div class="image-wrapper">
+            <div class="bts-wrapper">
                 <div class="image-controls">
                     <button onclick="toggleImage('left')">&larr;</button>
                     <span id="photo-label">IMAGE</span>
                     <button onclick="toggleImage('right')">&rarr;</button>
                 </div>
-                <div class="image-box">
+                <div class="bts-box">
                     <div class="status-indicator" id="photo-status"></div>
-                    <img id="photo-img" src="http://localhost:5000/image/0_webcam.jpg" alt="" />
+                    <img id="photo-img" src="http://localhost:5000/image/0_selfie.jpg" alt="" />
                 </div>
             </div>
         </div>
@@ -758,28 +842,17 @@
                     <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
                 </div>
             </div>
-            
-            <div class="controls">
-                <div class="button-wrapper">
-                     <div class="toggle">
-                        <label>Mode:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="face-toggle-switch" onchange="toggleFaceMode()">
-                            <span class="slider"></span>
-                        </label>
-                        <span id="face-toggle-label">Solo Photo</span>
-                    </div>
-                    <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
-                    <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
-                    <button onclick="processPhoto()">🖼️ Generate Sketch</button>
-                    <button onclick="downloadImage('photo-img')">💾 Download</button>
-                    <div class="checkbox">
-                        <input type="checkbox" id="selfie" checked>
-                        <label for="selfie">Selfie</label>
-                        <input type="checkbox" id="sketch" checked style="margin-left:10px;"/>
-                        <label for="sketch">Sketch</label>
-                    </div>
-                    <button id="start-drawing-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
+
+            <div class="bts-wrapper">
+                <div class="image-controls">
+                    <button onclick="toggleBTSImage('left')">&larr;</button>
+                    <span id="bts-label">BEHIND THE SCENES</span>
+                    <button onclick="toggleBTSImage('right')">&rarr;</button>
+                </div>
+                <div class="bts-box">
+                    <div class="status-indicator" id="photo-status"></div>
+                    <img id="bts-img" src="http://localhost:5000/image/1_bg_removed.png" alt="" />
+                    <div id="csv-scrollbox"></div>
                 </div>
             </div>
         </div>
@@ -791,10 +864,22 @@
 
     <script>
         let currentImageIndex = 0; 
+        let currentBTSImageIndex = 0;
         let currentStep = 1;
         const images = [
-            { src: "http://localhost:5000/image/0_webcam.jpg", label: "IMAGE" },
-            { src: "http://localhost:5000/image/2_sketch.jpg", label: "SKETCH" }
+            { src: "http://localhost:5000/image/0_selfie.jpg", label: "IMAGE" },
+            { src: "http://localhost:5000/image/6_sketch.jpg", label: "SKETCH" }
+        ];
+        const BTSimages = [
+            { src: "http://localhost:5000/image/1_bg_removed.png", label: "BACKGROUND REMOVED" },
+            { src: "http://localhost:5000/image/2_greyscale.png", label: "GREYSCALE" },
+            { src: "http://localhost:5000/image/3_hair_mask.png", label: "HAIR MASK" },
+            { src: "http://localhost:5000/image/4_edges.jpg", label: "EDGE DETECTION" },
+            { src: "http://localhost:5000/image/5_hair_outline.jpg", label: "HAIR OUTLINE" },
+            { src: "http://localhost:5000/image/6_sketch.jpg", label: "FACIAL FEATURES" },
+            { src: "http://localhost:5000/image/contour_overlay_simple.png", label: "IDENTIFY CONTOURS" },
+            { src: "http://localhost:5000/image/contour_overlay_ordered.png", label: "OPTIMISE PATH" },
+            { src: "http://localhost:5000/image/waypoints.csv", label: "WAYPOINTS" }
         ];
         
         function updateStep(step) {
@@ -864,6 +949,48 @@
             document.getElementById('photo-img').src = `${currentImage.src}?t=${timestamp}`;
             document.getElementById('photo-label').textContent = currentImage.label;
         }
+
+        function toggleBTSImage(direction) {
+            const timestamp = new Date().getTime();
+            if (direction === 'left') {
+                currentBTSImageIndex = (currentBTSImageIndex - 1 + BTSimages.length) % BTSimages.length;
+            } else if (direction === 'right') {
+                currentBTSImageIndex = (currentBTSImageIndex + 1) % BTSimages.length;
+            }
+            const currentImage = BTSimages[currentBTSImageIndex];
+            const btsImg = document.getElementById('bts-img');
+            const csvBox = document.getElementById('csv-scrollbox');
+            // document.getElementById('bts-label').textContent = currentImage.label;
+
+            if (currentImage.label === "WAYPOINTS") {
+                btsImg.style.display = 'none';
+                fetch('http://localhost:5000/image/waypoints.csv')
+                    .then(response => response.text())
+                    .then(data => {
+                        // Format CSV as a table
+                        const rows = data.trim().split('\n').map(row => row.split(','));
+                        let html = '<table style="width:100%; border-collapse:collapse;">';
+                        rows.forEach(cols => {
+                            html += '<tr>';
+                            cols.forEach(col => {
+                                html += `<td style="border:1px solid #ccc; padding:2px 6px;">${col}</td>`;
+                            });
+                            html += '</tr>';
+                        });
+                        html += '</table>';
+                        csvBox.innerHTML = html;
+                        csvBox.style.display = 'block';
+                    })
+                    .catch(() => {
+                        csvBox.innerHTML = "<em>waypoints.csv not found.</em>";
+                        csvBox.style.display = 'block';
+                    });
+            } else {
+                btsImg.style.display = 'block';
+                btsImg.src = `${currentImage.src}?t=${timestamp}`;
+                csvBox.style.display = 'none';
+            }
+        }
     
         function uploadImage(event) {
             const file = event.target.files[0];
@@ -897,7 +1024,7 @@
                     setTimeout(() => {
                         const timestamp = new Date().getTime();
                         const photoImg = document.getElementById('photo-img');
-                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
+                        photoImg.src = `http://localhost:5000/image/0_selfie.jpg?t=${timestamp}`;
                         document.getElementById('photo-label').textContent = "IMAGE";
                         currentImageIndex = 0;
                     }, 2000);
@@ -933,8 +1060,8 @@
                         currentImageIndex = 0;
                         const timestamp = new Date().getTime();
                         const photoImg = document.getElementById('photo-img');
-                        photoImg.src = `http://localhost:5000/image/0_webcam.jpg?t=${timestamp}`;
-                        document.getElementById('photo-img').src = 'http://localhost:5000/image/0_webcam.jpg?t=' + new Date().getTime();
+                        photoImg.src = `http://localhost:5000/image/0_selfie.jpg?t=${timestamp}`;
+                        document.getElementById('photo-img').src = 'http://localhost:5000/image/0_selfie.jpg?t=' + new Date().getTime();
                     }, 2000);
 
                     checkCSVExists();
@@ -959,7 +1086,7 @@
                     setTimeout(() => {
                         const timestamp = new Date().getTime();
                         const photoImg = document.getElementById('photo-img');
-                        photoImg.src = `http://localhost:5000/image/2_sketch.jpg?t=${timestamp}`;
+                        photoImg.src = `http://localhost:5000/image/6_sketch.jpg?t=${timestamp}`;
                         document.getElementById('photo-label').textContent = "SKETCH";
                         currentImageIndex = 1;
                     }, 2000);
@@ -1012,10 +1139,10 @@
             // Priority: Sketch > Selfie (if both checked, download sketch)
             let imageUrl, filename;
             if (sketchChecked) {
-                imageUrl = "http://localhost:5000/image/2_sketch.jpg";
+                imageUrl = "http://localhost:5000/image/6_sketch.jpg";
                 filename = "sketch.jpg";
             } else if (selfieChecked) {
-                imageUrl = "http://localhost:5000/image/0_webcam.jpg";
+                imageUrl = "http://localhost:5000/image/0_selfie.jpg";
                 filename = "image.jpg";
             } else {
                 showMessage("❌ Please select 'Selfie' or 'Sketch' to download.", true);
@@ -1053,7 +1180,7 @@
         }
 
         function checkSketchExists() {
-            const sketchUrl = "http://localhost:5000/image/2_sketch.jpg";
+            const sketchUrl = "http://localhost:5000/image/6_sketch.jpg";
             return fetch(sketchUrl, { method: "HEAD" })
                 .then(response => response.ok)
                 .catch(() => false);

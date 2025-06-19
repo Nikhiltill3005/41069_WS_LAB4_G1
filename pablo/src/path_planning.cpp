@@ -472,7 +472,7 @@ pathPlanning::pathPlanning() : Node("path_planning") {
     penHeight_ = 640; // 640/4000 = 0.16m = 160mm
     canvasHeight_ = 27; // 24/4000 = 0.006m = 6mm WITHIN( 40-45) optimal range
     drawZ_ = canvasHeight_ + penHeight_; // 664/4000 = 0.166m = 166mm
-    raiseZ_ = drawZ_ + 100; // 100/4000 = 0.025m = 25mm
+    raiseZ_ = drawZ_ + 30; // 100/4000 = 0.025m = 25mm
 }
 
 void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr msg) {
@@ -495,7 +495,7 @@ void pathPlanning::imageProcessedCallback(const std_msgs::msg::Bool::SharedPtr m
 
 void pathPlanning::tspSolver(){
     // Load the image
-    std::filesystem::path image_path = std::filesystem::path(getenv("HOME")) / "git/41069_WS_LAB4_G1/pablo/output/2_sketch.jpg";
+    std::filesystem::path image_path = std::filesystem::path(getenv("HOME")) / "git/41069_WS_LAB4_G1/pablo/output/6_sketch.jpg";
 
     // Check if the file exists
     if (!std::filesystem::exists(image_path)) {

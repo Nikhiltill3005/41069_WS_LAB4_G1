@@ -27,6 +27,7 @@ install(TARGETS
 ament_python_install_package(scripts)
 install(PROGRAMS
   scripts/image_processor.py
+  scripts/image_processor_high_detail_old.py
   scripts/image_processor_high_detail.py
   DESTINATION lib/${PROJECT_NAME}
 )

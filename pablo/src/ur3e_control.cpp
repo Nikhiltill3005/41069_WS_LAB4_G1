@@ -141,7 +141,7 @@ void ur3eControl::move_along_cartesian_path(std::vector<geometry_msgs::msg::Pose
     std::cout << "reading csv files" << '\n';
     std::cout << "waypoints size is " << points.size() << endl;
     moveit_msgs::msg::RobotTrajectory trajectory;
-    const double eef_step = 0.05;  // Step size in meters (small values = smoother motion)
+    const double eef_step = 0.1;  // Step size in meters (small values = smoother motion)
     const double jump_threshold = 0.0; // 0 to disable jump detection
 
     // Compute Cartesian Path

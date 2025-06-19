@@ -101,6 +101,7 @@ class ImageProcessor(Node):
             if not success:
                 break
             else:
+                frame = cv2.flip(frame, 1)  # Flip the frame horizontally
                 self.current_frame = frame  # Store the latest frame
                 _, buffer = cv2.imencode('.jpg', frame)
                 frame_bytes = buffer.tobytes()
@@ -116,7 +117,7 @@ class ImageProcessor(Node):
             return jsonify({"error": "Failed to capture image!"}), 500
         else:
             # Save the captured image
-            image_path = os.path.join(self.output_dir, "0_webcam.jpg")
+            image_path = os.path.join(self.output_dir, "0_selfie.jpg")
             cv2.imwrite(image_path, frame)
             self.resize_image()
             self.get_logger().info(f'Captured Image saved to: {image_path}')
@@ -124,7 +125,7 @@ class ImageProcessor(Node):
 
     #---------- Resize Image ----------
     def resize_image(self):
-        image_path = os.path.join(self.output_dir, "0_webcam.jpg")
+        image_path = os.path.join(self.output_dir, "0_selfie.jpg")
         image = cv2.imread(image_path)
         if image is None:
             self.get_logger().error('No image captured yet!')
@@ -160,13 +161,16 @@ class ImageProcessor(Node):
     #---------- Image Processing ----------
     def process_image(self):
         # Read the captured image 
-        image = cv2.imread(os.path.join(self.output_dir, "0_webcam.jpg"))
+        image = cv2.imread(os.path.join(self.output_dir, "0_selfie.jpg"))
         if image is None:
             self.get_logger().error('No image captured yet!')
             return jsonify({"error": "No image captured yet!"}), 400
 
         # Remove background using rembg
         no_bg_face = remove(image)
+        no_bg_path = os.path.join(self.output_dir, "1_bg_removed.png")
+        cv2.imwrite(no_bg_path, no_bg_face)
+        self.get_logger().info(f'Background removed image saved to: {no_bg_path}')
         no_bg_face_bgr = cv2.cvtColor(no_bg_face, cv2.COLOR_RGB2BGR)
         gray_image = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2GRAY)
 
@@ -175,10 +179,6 @@ class ImageProcessor(Node):
         if len(faces) == 0:
             self.get_logger().error('No face detected!')
             return jsonify({"error": "No face detected! Retake Image"}), 400
-        
-        # # Find the largest face (by area)
-        # if len(faces) > 1:
-        #     faces = sorted(faces, key=lambda rect: rect.width() * rect.height(), reverse=True)
 
         # Find the face closest to the center of the image
         if len(faces) > 1:
@@ -243,53 +243,106 @@ class ImageProcessor(Node):
                 cropped_bgr = no_bg_face_bgr[y1:y2, x1:x2]
                 cropped_gray = gray_image[y1:y2, x1:x2]
 
+                # Resize to 960x720
+                cropped_bgr = cv2.resize(cropped_bgr, (960, 720), interpolation=cv2.INTER_AREA)
+                cropped_gray = cv2.resize(cropped_gray, (960, 720), interpolation=cv2.INTER_AREA)
+
                 # Overwrite images for further processing
                 no_bg_face_bgr = cropped_bgr
                 gray_image = cropped_gray
 
-                # Update face rectangle for cropped image
+                # After resizing cropped_bgr and cropped_gray to (960, 720)
+                scale_x = 960 / (x2 - x1)
+                scale_y = 720 / (y2 - y1)
+                # Update face rectangle for resized image
                 new_face = dlib.rectangle(
-                    left=face.left() - x1,
-                    top=face.top() - y1,
-                    right=face.right() - x1,
-                    bottom=face.bottom() - y1
+                    left=int((face.left() - x1) * scale_x),
+                    top=int((face.top() - y1) * scale_y),
+                    right=int((face.right() - x1) * scale_x),
+                    bottom=int((face.bottom() - y1) * scale_y)
                 )
                 all_landmarks = [self.predictor(gray_image, new_face)]
             else:
                 all_landmarks = [self.predictor(gray_image, faces[0])]
-
+        
         # Convert to grayscale for sketch effect
-        output_path_gray = os.path.join(self.output_dir, '1_no_background.jpg')
+        output_path_gray = os.path.join(self.output_dir, '2_greyscale.png')
         cv2.imwrite(output_path_gray, gray_image)
-        self.get_logger().info(f'Face with background removed saved to: {output_path_gray}')
+        self.get_logger().info(f'Face with greyscale removed saved to: {output_path_gray}')
 
         no_bg_face_bgr = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
+        no_bg_face_rgb = cv2.cvtColor(no_bg_face_bgr, cv2.COLOR_BGR2RGB)
 
-        # Resize and preprocess image for BiSeNet
-        input_image = cv2.resize(no_bg_face_bgr, (512, 512))
-        input_tensor = self.face_transforms(input_image)
-        input_tensor = input_tensor.unsqueeze(0).to('cuda' if torch.cuda.is_available() else 'cpu')
+        # HAIR PROCESSING
+        if ImageProcessor.facesToggle:
+            # SEPARATE HAIR MASK PROCESSING
+            hair_masks = []
+            face_coords = []
+            for face in faces:
+                x, y, w, h = face.left(), face.top(), face.width(), face.height()
+                border_x = int(w * 0.4)
+                border_y = int(h * 0.8)
+                x1 = max(0, x - border_x)
+                y1 = max(0, y - border_y)
+                x2 = min(gray_image.shape[1], x + w + border_x)
+                y2 = min(gray_image.shape[0], y + h + border_y)
+                face_crop_rgb = no_bg_face_rgb[y1:y2, x1:x2]
+                # Resize to 512x512 for BiSeNet
+                input_image = cv2.resize(face_crop_rgb, (512, 512))
+                input_tensor = self.face_transforms(input_image)
+                input_tensor = input_tensor.unsqueeze(0).to('cuda' if torch.cuda.is_available() else 'cpu')
+                with torch.no_grad():
+                    out = self.bisenet(input_tensor)[0]
+                    parsing = out.squeeze(0).cpu().numpy().argmax(0)
+                hair_mask_single = (parsing == 17).astype(np.uint8) * 255
+                # Resize mask back to face_crop size
+                hair_mask_single = cv2.resize(hair_mask_single, (face_crop_rgb.shape[1], face_crop_rgb.shape[0]), interpolation=cv2.INTER_NEAREST)
+                hair_masks.append(hair_mask_single)
+                face_coords.append((x1, y1, x2, y2))
+                # Optionally, save each mask
+                # cv2.imwrite(os.path.join(self.output_dir, f"hair_mask_{x}_{y}.png"), hair_mask_single)
 
-        # Run through BiSeNet
-        with torch.no_grad():
-            out = self.bisenet(input_tensor)[0]
-            parsing = out.squeeze(0).cpu().numpy().argmax(0)
+            # Now combine all masks into one
+            hair_mask = np.zeros(gray_image.shape, dtype=np.uint8)
+            for idx, (x1, y1, x2, y2) in enumerate(face_coords):
+                hair_mask[y1:y2, x1:x2] = cv2.bitwise_or(
+                    hair_mask[y1:y2, x1:x2],
+                    cv2.resize(hair_masks[idx], (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST)
+                )
 
-        # Hair mask = class index 17 in CelebAMask-HQ
-        hair_mask = (parsing == 17).astype(np.uint8) * 255
-        hair_mask = cv2.resize(hair_mask, (no_bg_face_bgr.shape[1], no_bg_face_bgr.shape[0]), interpolation=cv2.INTER_NEAREST)
+            # Optionally save the combined mask
+            combined_hair_mask_path = os.path.join(self.output_dir, "3_hair_mask.png")
+            cv2.imwrite(combined_hair_mask_path, hair_mask)
+            self.get_logger().info(f'Combined hair mask saved to: {combined_hair_mask_path}')
 
-        # Save as PNG with transparency
-        hair_mask_png = np.stack([hair_mask] * 3 + [hair_mask], axis=-1)  # RGBA
-        hair_mask_path = os.path.join(self.output_dir, "3_hair_mask.png")
-        cv2.imwrite(hair_mask_path, hair_mask_png)
-        self.get_logger().info(f'Hair mask saved to: {hair_mask_path}')
+        else:
+            # Resize and preprocess image for BiSeNet
+            input_image = cv2.resize(no_bg_face_rgb, (512, 512))
+            input_tensor = self.face_transforms(input_image)
+            input_tensor = input_tensor.unsqueeze(0).to('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # Apply Blur
+            # Run through BiSeNet
+            with torch.no_grad():
+                out = self.bisenet(input_tensor)[0]
+                parsing = out.squeeze(0).cpu().numpy().argmax(0)
+
+            # Hair mask = class index 17 in CelebAMask-HQ
+            hair_mask = (parsing == 17).astype(np.uint8) * 255
+            hair_mask = cv2.resize(hair_mask, (no_bg_face_rgb.shape[1], no_bg_face_rgb.shape[0]), interpolation=cv2.INTER_NEAREST)
+
+            # Save as PNG with transparency
+            hair_mask_png = np.stack([hair_mask] * 3 + [hair_mask], axis=-1)  # RGBA
+            hair_mask_path = os.path.join(self.output_dir, "3_hair_mask.png")
+            cv2.imwrite(hair_mask_path, hair_mask_png)
+            self.get_logger().info(f'Hair mask saved to: {hair_mask_path}')
+
+        # Minimal Detail Edge Detection
         blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
-
-        # Detect edges using Canny
         edges = cv2.Canny(blurred_face, 50, 150)
+
+        # # High Detail Edge Detection
+        # blurred_face = cv2.bilateralFilter(gray_image, 9, 25, 25)
+        # edges = cv2.Canny(blurred_face, 30, 150)
 
         # Remove small contours (noise)
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -300,9 +353,19 @@ class ImageProcessor(Node):
             if cv2.contourArea(cnt) > min_contour_area:
                 cv2.drawContours(mask, [cnt], -1, 255, 1)  # Set thickness to 1px
 
+        # Save the edges image
+        edges_image_path = os.path.join(self.output_dir, "4_edges.jpg")
+        cv2.imwrite(edges_image_path, mask)
+        self.get_logger().info(f'Edges image saved to: {edges_image_path}')
+
         hair_contours, _ = cv2.findContours(hair_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # Draw hair contours on the edges_colored image
         cv2.drawContours(mask, hair_contours, -1, 255, 1) 
+
+        # Save the hair mask with contours
+        hair_mask_with_contours_path = os.path.join(self.output_dir, "5_hair_outline.jpg")
+        cv2.imwrite(hair_mask_with_contours_path, mask)
+        self.get_logger().info(f'Hair mask with contours saved to: {hair_mask_with_contours_path}')
 
         # Convert edges to 3 channels
         edges_colored = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
@@ -332,7 +395,7 @@ class ImageProcessor(Node):
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
 
         # Save the final sketch
-        sketch_image_path = os.path.join(self.output_dir, "2_sketch.jpg")
+        sketch_image_path = os.path.join(self.output_dir, "6_sketch.jpg")
         cv2.imwrite(sketch_image_path, final_sketch)
         self.get_logger().info(f'Sketch face saved to: {sketch_image_path}')
 
@@ -387,7 +450,7 @@ def upload_image():
         return "No selected file", 400
 
     # Save the file to the output folder
-    new_filename = "0_webcam.jpg"
+    new_filename = "0_selfie.jpg"
     file_path = os.path.join(image_processor.output_dir, new_filename)
     file.save(file_path)
     image_processor.resize_image()
