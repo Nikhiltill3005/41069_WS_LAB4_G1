@@ -45,7 +45,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 30px;
-            padding: 10px;
+            padding: 20px;
             flex: 1 0 auto;
         }
 
@@ -92,7 +92,7 @@
             font-size: 22px;
             color: #ffffff;
             text-align: left;
-            margin-left: -18px;
+            margin-left: -25px;
             margin-top: 5px;
             margin-bottom: 0px;
             position: absolute;
@@ -102,7 +102,7 @@
             font-size: 22px;
             color: #ffffff;
             text-align: left;
-            margin-left: -18px;
+            margin-left: -25px;
             margin-top: 30px;
             margin-bottom: 0px;
             position: absolute;
@@ -112,10 +112,22 @@
             font-size: 22px;
             color: #ffffff;
             text-align: left;
-            margin-left: -18px;
+            margin-left: -25px;
             margin-top: 55px;
             margin-bottom: 0px;
             position: absolute;
+        }
+
+        .title h5 {
+            font-size: 17px;
+            color: #ffffff;
+            text-align: center;
+            margin-left: 0px;
+            margin-top: -14px;
+            margin-bottom: 8px;
+            position: static;
+            letter-spacing: 1.7px;
+
         }
 
         .how-to {
@@ -232,7 +244,7 @@
         .camera-box,
         .simulator-box {
             /* background: white; */
-            background-color: rgba(255, 255, 255, 0.6); /* Transparent white */
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent white */
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 10px;
@@ -250,7 +262,7 @@
         .image-box,
         .bts-box {
             /* background: white; */
-            background-color: rgba(255, 255, 255, 0.6); /* Transparent white */
+            background-color: rgba(255, 255, 255, 0.1); /* Transparent white */
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 10px;
@@ -726,7 +738,7 @@
     <div class="container">
         <!-- Left Column -->
         <div>
-            <div class="section title">
+            <div class="title">
                 <div class="container2">
                     <div><h1>PABLO</h1></div>
                     <div>
@@ -735,8 +747,11 @@
                         <h4>ROBOT</h4>
                     </div>
                     <div>
-                        <image src="logo.png" alt="Pablo Logo" style="width: 80px; height: 80px; margin-top: 4px">
+                        <img src="logo.png" alt="Pablo Logo" style="width: 80px; height: 80px; margin-top: 4px; margin-left: -53px;"/>
                     </div>
+                </div>
+                <div>
+                    <h5>Portrait Automation Bot using Line Optimisation</h5>
                 </div>
             </div>
 
@@ -752,7 +767,7 @@
                 </div>
                 <div class="step" id="step3">
                     <div class="step-circle">3</div>
-                    <div class="step-text">Click <strong>Generate Sketch</strong> to let the AI process your selfie image into a custom line drawing.</div>
+                    <div class="step-text">Click <strong>Generate Sketch</strong> to let the AI process your portrait image into a custom line drawing.</div>
                 </div>
                 <div class="step" id="step4">
                     <div class="step-circle">4</div>
@@ -846,7 +861,7 @@
             <div class="bts-wrapper">
                 <div class="image-controls">
                     <button onclick="toggleBTSImage('left')">&larr;</button>
-                    <span id="bts-label">BEHIND THE SCENES</span>
+                    <span id="bts-label">BACKEND</span>
                     <button onclick="toggleBTSImage('right')">&rarr;</button>
                 </div>
                 <div class="bts-box">
@@ -858,9 +873,9 @@
         </div>
     </div>
 
-    <div class="footer-wrapper">
+    <!-- <div class="footer-wrapper">
         <h1>Created by Edan Anonuevo, Nikhil Kumar & Sachin Hanel</h1>
-    </div>  
+    </div>   -->
 
     <script>
         let currentImageIndex = 0; 
