@@ -45,7 +45,7 @@ class ImageProcessor(Node):
         self.predictor = dlib.shape_predictor(model_path)
 
         # Start video capture
-        self.cap = cv2.VideoCapture(2) # 0 for default camera, 2/4 for external camera
+        self.cap = cv2.VideoCapture(0) # 0 for default camera, 2/4 for external camera
         self.current_frame = None
 
         # Start Flask server in a separate thread
@@ -397,17 +397,17 @@ class ImageProcessor(Node):
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
 
         # Add a border to the sketch
-        border_thickness = 1  # Thickness of the border in pixels
-        border_color = (255, 255, 255)  # White border
-        final_sketch = cv2.copyMakeBorder(
-            final_sketch,
-            top=border_thickness,
-            bottom=border_thickness,
-            left=border_thickness,
-            right=border_thickness,
-            borderType=cv2.BORDER_CONSTANT,
-            value=border_color
-        )
+        # border_thickness = 1  # Thickness of the border in pixels
+        # border_color = (255, 255, 255)  # White border
+        # final_sketch = cv2.copyMakeBorder(
+        #     final_sketch,
+        #     top=border_thickness,
+        #     bottom=border_thickness,
+        #     left=border_thickness,
+        #     right=border_thickness,
+        #     borderType=cv2.BORDER_CONSTANT,
+        #     value=border_color
+        # )
 
         # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "6_sketch.jpg")

@@ -198,8 +198,8 @@ std::vector<geometry_msgs::msg::Pose> ur3eControl::readCSVposes() {
             float y = std::stof(y_str);
             float z = std::stof(z_str);
 
-            targetPoint.position.x = (x/4000-0.125);
-            targetPoint.position.y = (y/4000)+0.310;
+            targetPoint.position.x = -1*(x/4000-0.124); // -0.125
+            targetPoint.position.y = (y/4000)+0.308;
             targetPoint.position.z = z/4000;
 
             // Set a default orientation

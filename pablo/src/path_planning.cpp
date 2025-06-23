@@ -911,12 +911,18 @@ float pathPlanning::calculateDistance(const cv::Point& p1, const cv::Point& p2) 
     return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
 }
 
-// Updated function to save waypoints with pen up/down movements
+// Updated function to save waypoints with pen up/down movements and border drawing
+// Updated function to save waypoints with pen up/down movements and border drawing
 void pathPlanning::saveWaypointsToFile(const std::vector<std::vector<Waypoint>>& contour_waypoints, 
                                      const std::string& directory, const std::string& filename) {
     // Construct the full file path
     std::filesystem::path dir_path(directory);
     std::filesystem::path file_path = dir_path / filename;
+
+    // Hardcoded canvas dimensions and border settings
+    const int canvas_width = 960;
+    const int canvas_height = 720;
+    const int border_margin = 0;
 
     // Check if the directory exists
     if (!std::filesystem::exists(dir_path)) {
@@ -930,12 +936,146 @@ void pathPlanning::saveWaypointsToFile(const std::vector<std::vector<Waypoint>>&
     if (file.is_open()) {
         file << "x,y,z,distance_from_last\n"; // CSV header
         
+        // Calculate border points with dense points near corners to force straight lines
+        const int corner_distance = 10; // Distance from corner to place dense points on each side
+        const int middle_spacing = 50; // Spacing for points in the middle of each edge
+        std::vector<cv::Point> border_points;
+        
+        // Start at top-left corner
+        border_points.push_back(cv::Point(border_margin, border_margin));
+        
+        // Left edge - dense points after top-left corner (first 10 pixels going down)
+        for (int y = border_margin + 1; y <= border_margin + corner_distance; y++) {
+            border_points.push_back(cv::Point(border_margin, y));
+        }
+        
+        // Left edge - middle section points
+        int left_middle_start = border_margin + corner_distance + 1;
+        int left_middle_end = canvas_height - border_margin - corner_distance - 1;
+        for (int y = left_middle_start; y <= left_middle_end; y += middle_spacing) {
+            border_points.push_back(cv::Point(border_margin, y));
+        }
+        
+        // Left edge - dense points before bottom-left corner (last 10 pixels going down)
+        for (int y = canvas_height - border_margin - corner_distance; y < canvas_height - border_margin; y++) {
+            border_points.push_back(cv::Point(border_margin, y));
+        }
+        border_points.push_back(cv::Point(border_margin, canvas_height - border_margin)); // Bottom-left corner
+        
+        // Bottom edge - dense points after bottom-left corner (first 10 pixels going right)
+        for (int x = border_margin + 1; x <= border_margin + corner_distance; x++) {
+            border_points.push_back(cv::Point(x, canvas_height - border_margin));
+        }
+        
+        // Bottom edge - middle section points
+        int bottom_middle_start = border_margin + corner_distance + 1;
+        int bottom_middle_end = canvas_width - border_margin - corner_distance - 1;
+        for (int x = bottom_middle_start; x <= bottom_middle_end; x += middle_spacing) {
+            border_points.push_back(cv::Point(x, canvas_height - border_margin));
+        }
+        
+        // Bottom edge - dense points before bottom-right corner (last 10 pixels going right)
+        for (int x = canvas_width - border_margin - corner_distance; x < canvas_width - border_margin; x++) {
+            border_points.push_back(cv::Point(x, canvas_height - border_margin));
+        }
+        border_points.push_back(cv::Point(canvas_width - border_margin, canvas_height - border_margin)); // Bottom-right corner
+        
+        // Right edge - dense points after bottom-right corner (first 10 pixels going up)
+        for (int y = canvas_height - border_margin - 1; y >= canvas_height - border_margin - corner_distance; y--) {
+            border_points.push_back(cv::Point(canvas_width - border_margin, y));
+        }
+        
+        // Right edge - middle section points
+        int right_middle_start = canvas_height - border_margin - corner_distance - 1;
+        int right_middle_end = border_margin + corner_distance + 1;
+        for (int y = right_middle_start; y >= right_middle_end; y -= middle_spacing) {
+            border_points.push_back(cv::Point(canvas_width - border_margin, y));
+        }
+        
+        // Right edge - dense points before top-right corner (last 10 pixels going up)
+        for (int y = border_margin + corner_distance; y > border_margin; y--) {
+            border_points.push_back(cv::Point(canvas_width - border_margin, y));
+        }
+        border_points.push_back(cv::Point(canvas_width - border_margin, border_margin)); // Top-right corner
+        
+        // Top edge - dense points after top-right corner (first 10 pixels going left)
+        for (int x = canvas_width - border_margin - 1; x >= canvas_width - border_margin - corner_distance; x--) {
+            border_points.push_back(cv::Point(x, border_margin));
+        }
+        
+        // Top edge - middle section points
+        int top_middle_start = canvas_width - border_margin - corner_distance - 1;
+        int top_middle_end = border_margin + corner_distance + 1;
+        for (int x = top_middle_start; x >= top_middle_end; x -= middle_spacing) {
+            border_points.push_back(cv::Point(x, border_margin));
+        }
+        
+        // Top edge - dense points before top-left corner (last 10 pixels going left)
+        for (int x = border_margin + corner_distance; x > border_margin; x--) {
+            border_points.push_back(cv::Point(x, border_margin));
+        }
+        
+        // Draw the border with dense corner control points
+        for (size_t i = 0; i < border_points.size(); ++i) {
+            const cv::Point& point = border_points[i];
+            float distance = 0.0f;
+            
+            if (i == 0) {
+                // First point - start with pen down
+                file << point.x << "," << point.y << "," << drawZ_ << "," << distance << " # Border start - top-left corner\n";
+            } else {
+                // Calculate distance from previous point
+                const cv::Point& prev_point = border_points[i-1];
+                distance = std::sqrt(std::pow(point.x - prev_point.x, 2) + 
+                                   std::pow(point.y - prev_point.y, 2));
+                
+                // Determine which edge/corner we're on
+                std::string comment = " # Border point";
+                if (point.x == canvas_width - border_margin && point.y == border_margin) {
+                    comment = " # Border - top-right corner";
+                } else if (point.x == canvas_width - border_margin && point.y == canvas_height - border_margin) {
+                    comment = " # Border - bottom-right corner";
+                } else if (point.x == border_margin && point.y == canvas_height - border_margin) {
+                    comment = " # Border - bottom-left corner";
+                } else if (point.y == border_margin) {
+                    comment = " # Border - top edge";
+                } else if (point.x == canvas_width - border_margin) {
+                    comment = " # Border - right edge";
+                } else if (point.y == canvas_height - border_margin) {
+                    comment = " # Border - bottom edge";
+                } else if (point.x == border_margin) {
+                    comment = " # Border - left edge";
+                }
+                
+                file << point.x << "," << point.y << "," << drawZ_ << "," << distance << comment << "\n";
+            }
+        }
+        
+        // After drawing border, prepare for face drawing
+        if (!contour_waypoints.empty() && !contour_waypoints[0].empty()) {
+            // Raise pen after border completion
+            const cv::Point& last_border_point = border_points.back();
+            file << last_border_point.x << "," << last_border_point.y << "," << raiseZ_ << "," << 0.0 << " # Raise pen after border\n";
+            
+            // Move to the first point of the face drawing
+            const Waypoint& first_face_point = contour_waypoints[0][0];
+            float travel_distance = std::sqrt(std::pow(first_face_point.x - last_border_point.x, 2) + 
+                                            std::pow(first_face_point.y - last_border_point.y, 2));
+            file << first_face_point.x << "," << first_face_point.y << "," << raiseZ_ << "," 
+                 << travel_distance << " # Move to face start\n";
+            
+            // Lower pen for face drawing
+            file << first_face_point.x << "," << first_face_point.y << "," << drawZ_ << "," 
+                 << 0.0 << " # Lower pen for face\n";
+        }
+        
+        // Now draw the face contours
         for (size_t i = 0; i < contour_waypoints.size(); ++i) {
             const auto& waypoints = contour_waypoints[i];
             
             if (waypoints.empty()) continue;
             
-            // First point of a contour - add with pen lowering sequence
+            // Handle contour transitions (pen up/down between contours)
             if (i > 0) { // Not the first contour
                 // Get last point of previous contour and first point of current contour
                 const Waypoint& prev_end = contour_waypoints[i-1].back();
@@ -958,12 +1098,11 @@ void pathPlanning::saveWaypointsToFile(const std::vector<std::vector<Waypoint>>&
             // Write all points in this contour
             for (size_t j = 0; j < waypoints.size(); ++j) {
                 const auto& wp = waypoints[j];
-                // For the first point of the first contour, ensure it starts at drawing height
+                // Skip the first point of the first contour since we already handled it above
                 if (i == 0 && j == 0) {
-                    file << wp.x << "," << wp.y << "," << drawZ_ << "," << wp.distance_from_last << "\n";
-                } else {
-                    file << wp.x << "," << wp.y << "," << drawZ_ << "," << wp.distance_from_last << "\n";
+                    continue; // Skip - already written with pen down sequence
                 }
+                file << wp.x << "," << wp.y << "," << drawZ_ << "," << wp.distance_from_last << "\n";
             }
         }
         
@@ -974,7 +1113,7 @@ void pathPlanning::saveWaypointsToFile(const std::vector<std::vector<Waypoint>>&
         }
         
         file.close();
-        std::cout << "Waypoints saved to " << file_path << " with pen up/down movements" << std::endl;
+        std::cout << "Waypoints saved to " << file_path << " with border and pen up/down movements" << std::endl;
     } else {
         std::cerr << "Unable to open file for saving waypoints!" << std::endl;
     }
