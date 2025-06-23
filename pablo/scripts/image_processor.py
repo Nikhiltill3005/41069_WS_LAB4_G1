@@ -27,7 +27,7 @@ CORS(app)  # Enable CORS for all routes
 
 class ImageProcessor(Node):
     #---------- Initialiser ----------
-    facesToggle = False
+    facesToggle = False # False = Single Face, True = Group Photo
 
     def __init__(self):
         super().__init__('image_processor')
@@ -92,6 +92,8 @@ class ImageProcessor(Node):
     def face_toggle(self):
         ImageProcessor.facesToggle = not ImageProcessor.facesToggle
         self.get_logger().info(f'Face toggle set to: {ImageProcessor.facesToggle}')
+
+        return "Face Mode Toggled", 200
 
     #---------- Flask Server Frames ----------
     def generate_frames(self):
@@ -336,13 +338,13 @@ class ImageProcessor(Node):
             cv2.imwrite(hair_mask_path, hair_mask_png)
             self.get_logger().info(f'Hair mask saved to: {hair_mask_path}')
 
-        # Minimal Detail Edge Detection
-        blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
-        edges = cv2.Canny(blurred_face, 50, 150)
+        # # Minimal Detail Edge Detection
+        # blurred_face = cv2.bilateralFilter(gray_image, 9, 75, 75)
+        # edges = cv2.Canny(blurred_face, 50, 150)
 
-        # # High Detail Edge Detection
-        # blurred_face = cv2.bilateralFilter(gray_image, 9, 25, 25)
-        # edges = cv2.Canny(blurred_face, 30, 150)
+        # High Detail Edge Detection
+        blurred_face = cv2.bilateralFilter(gray_image, 9, 25, 25)
+        edges = cv2.Canny(blurred_face, 30, 150)
 
         # Remove small contours (noise)
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -393,6 +395,19 @@ class ImageProcessor(Node):
 
         # Save final sketch
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
+
+        # Add a border to the sketch
+        border_thickness = 1  # Thickness of the border in pixels
+        border_color = (255, 255, 255)  # White border
+        final_sketch = cv2.copyMakeBorder(
+            final_sketch,
+            top=border_thickness,
+            bottom=border_thickness,
+            left=border_thickness,
+            right=border_thickness,
+            borderType=cv2.BORDER_CONSTANT,
+            value=border_color
+        )
 
         # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "6_sketch.jpg")

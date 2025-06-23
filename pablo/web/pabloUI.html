@@ -697,6 +697,31 @@
             flex-shrink: 0;
         }
 
+        .btsText-wrapper {
+            background-color: rgba(44, 130, 255, 0.2); /* Transparent white */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2), inset 0 4px 20px rgba(44,130,255,0.3);
+            border-radius: 15px;
+            padding: 5px;
+            margin: 0px 10px 10px 10px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 40px;
+            position: absolute;
+            text-align: center;
+        }
+
+        .btsText-wrapper h1{
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
         @media (max-width: 1024px) {
             .container {
                 grid-template-columns: 1fr;
@@ -734,7 +759,7 @@
         }
     </style>
 </head>
-<body onload="checkCSVExists()">
+<body>
     <div class="container">
         <!-- Left Column -->
         <div>
@@ -841,7 +866,7 @@
                     <span id="photo-label">IMAGE</span>
                     <button onclick="toggleImage('right')">&rarr;</button>
                 </div>
-                <div class="bts-box">
+                <div class="image-box">
                     <div class="status-indicator" id="photo-status"></div>
                     <img id="photo-img" src="http://localhost:5000/image/0_selfie.jpg" alt="" />
                 </div>
@@ -868,6 +893,10 @@
                     <div class="status-indicator" id="photo-status"></div>
                     <img id="bts-img" src="http://localhost:5000/image/1_bg_removed.png" alt="" />
                     <div id="csv-scrollbox"></div>
+
+                    <div class="btsText-wrapper">
+                        <h1 id="btsText"></h1>
+                    </div>
                 </div>
             </div>
         </div>
@@ -974,8 +1003,9 @@
             }
             const currentImage = BTSimages[currentBTSImageIndex];
             const btsImg = document.getElementById('bts-img');
+            const btsText = document.getElementById('btsText');
             const csvBox = document.getElementById('csv-scrollbox');
-            // document.getElementById('bts-label').textContent = currentImage.label;
+            btsText.textContent = currentImage.label;
 
             if (currentImage.label === "WAYPOINTS") {
                 btsImg.style.display = 'none';
@@ -1044,6 +1074,13 @@
                         currentImageIndex = 0;
                     }, 2000);
 
+                    setTimeout(() => {
+                        const timestamp = new Date().getTime();
+                        const btsImg = document.getElementById('bts-img');
+                        btsImg.src = `http://localhost:5000/image/1_bg_removed.png?t=${timestamp}`;
+                        currentBTSImageIndex = 0;
+                    }, 2000);
+
                     checkCSVExists();
                 })
                 .catch(error => {
@@ -1104,6 +1141,9 @@
                         photoImg.src = `http://localhost:5000/image/6_sketch.jpg?t=${timestamp}`;
                         document.getElementById('photo-label').textContent = "SKETCH";
                         currentImageIndex = 1;
+
+                        const btsImg = document.getElementById('bts-img');
+                        btsImg.src = `http://localhost:5000/image/1_bg_removed.png?t=${timestamp}`;
                     }, 2000);
 
                     checkSketchExists().then(exists => {
@@ -1201,29 +1241,34 @@
                 .catch(() => false);
         }
 
+        function checkBackendExists(){
+            const backendUrl = "http://localhost:5000/image/1_bg_removed.png"; // Check for first BTS image
+            return fetch(backendUrl, { method: "HEAD" })
+                .then(response => response.ok)
+                .catch(() => false);
+        }
+
         function checkCSVExists() {
+            const startDrawingButton = document.getElementById('start-drawing-button');
             const sketchUrl = "http://localhost:5000/image/waypoints.csv"; // Check for CSV
 
             fetch(sketchUrl, { method: "HEAD" })
                 .then(response => {
-                    const startDrawingButton = document.getElementById('start-drawing-button');
                     if (response.ok) {
-                        startDrawingButton.removeAttribute('disabled');
+                        startDrawingButton.disabled = false;
                         startDrawingButton.classList.add('green-button');
                         // Optionally update UI to indicate the sketch is ready
-                        // Do NOT set photo-img.src to the CSV, since it's not an image
                         currentImageIndex = 1;
                         updateStep(4);
                         updateProgress(75);
                     } else {
-                        startDrawingButton.setAttribute('disabled', true);
+                        startDrawingButton.disabled = true;
                         startDrawingButton.classList.remove('green-button');
                         console.log("waypoints.csv does not exist.");
                     }
                 })
                 .catch(error => {
-                    const startDrawingButton = document.getElementById('start-drawing-button');
-                    startDrawingButton.setAttribute('disabled', true);
+                    startDrawingButton.disabled = true;
                     startDrawingButton.classList.remove('green-button');
                     console.error("Error checking sketch existence:", error);
                 });
@@ -1265,10 +1310,11 @@
             fetch("http://localhost:5000/faceToggleState")
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Backend faceToggleState:", data); // <-- Add this line
                     const toggle = document.getElementById('face-toggle-switch');
                     const label = document.getElementById('face-toggle-label');
-                    toggle.checked = data.facesToggle;
-                    label.textContent = data.facesToggle ? "Group Photo" : "Solo Photo";
+                    toggle.checked = !!data.facesToggle;
+                    label.textContent = toggle.checked ? "Group Photo" : "Solo Photo";
                 })
                 .catch(error => {
                     console.error("Error fetching face toggle state:", error);
@@ -1276,12 +1322,12 @@
         }
 
         // Initialize webcam status as active
-        window.onload = function() {
+        window.addEventListener('DOMContentLoaded', function() {
             checkCSVExists();
             syncFaceToggleSwitch();
             updateStatus('webcam-status', 'active');
             updateStep(1);
-        };
+        });
 
         // UNITY
         if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
