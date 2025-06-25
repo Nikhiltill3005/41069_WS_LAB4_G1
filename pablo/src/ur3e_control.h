@@ -117,7 +117,7 @@ class ur3eControl : public rclcpp::Node {
         bool planningComplete_;
 
     /// Directory path to the CSV file containing waypoints.
-        std::string csvDirectory_ = "/home/sachinhanel/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv";
+        std::string csvDirectory_ = "/home/edan/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv";
         //  std::string csvDirectory_ = "/home/niku/git/41069_WS_LAB4_G1/pablo/output/waypoints.csv";
         
     };

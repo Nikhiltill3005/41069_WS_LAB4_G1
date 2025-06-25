@@ -75,7 +75,7 @@
             -webkit-backdrop-filter: blur(10px); /* For Safari */
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2), inset 0 4px 20px rgba(44,130,255,0.3);
-            padding: 5px;
+            padding: 14px 14px 14px 20px;
             margin-bottom: 10px;
         }
 
@@ -127,7 +127,13 @@
             margin-bottom: 8px;
             position: static;
             letter-spacing: 1.7px;
+        }
 
+        .responsive-header{
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
         }
 
         .how-to {
@@ -213,7 +219,7 @@
         .how-to .step-text {
             flex-grow: 1;
             color: #333;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .camera-wrapper,
@@ -766,7 +772,7 @@
         <!-- Left Column -->
         <div>
             <div class="title">
-                <div class="container2">
+                <!-- <div class="container2">
                     <div><h1>PABLO</h1></div>
                     <div>
                         <h2>THE SELFIE</h2>
@@ -779,7 +785,9 @@
                 </div>
                 <div>
                     <h5>Portrait Automation Bot using Line Optimisation</h5>
-                </div>
+                </div> -->
+
+                <img src="pabloHeader.png" alt="" class="responsive-header"/>
             </div>
 
             <div class="how-to">
@@ -790,7 +798,7 @@
                 </div>
                 <div class="step" id="step2">
                     <div class="step-circle">2</div>
-                    <div class="step-text">Click on the <Strong>mode toggle</Strong> to switch between Solo & Group Photo Mode.</div>
+                    <div class="step-text">Use the toggle to switch to <Strong>Solo</Strong> or <Strong>Group</Strong> photo mode.</div>
                 </div>
                 <div class="step" id="step3">
                     <div class="step-circle">3</div>
@@ -802,11 +810,11 @@
                 </div>
                 <div class="step" id="step5">
                     <div class="step-circle">5</div>
-                    <div class="step-text">Use <strong>left click + drag </strong>to rotate around the robot arm in the simulation.</div>
+                    <div class="step-text"><strong>Left Click + Drag</strong> to rotate around the robot in the simulator.</div>
                 </div>
                 <div class="step" id="step6">
                     <div class="step-circle">6</div>
-                    <div class="step-text">Optional: <strong>Download</strong> your finished artwork and share it with friends.</div>
+                    <div class="step-text">Optional: <strong>Download</strong> your finished artwork and share.</div>
                 </div>
             </div>
 
@@ -934,16 +942,17 @@
         ];
         
         function updateStep(step) {
-            // Remove active class from all steps
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            
-            // Add completed class to previous steps
-            for (let i = 1; i < step; i++) {
-                document.getElementById(`step${i}`).classList.add('completed');
-            }
-            
-            // Add active class to current step
-            if (step <= 5) {
+            // Remove active and completed classes from all steps
+            document.querySelectorAll('.step').forEach((s, idx) => {
+                s.classList.remove('active', 'completed');
+                // Add completed class to previous steps
+                if (idx + 1 < step) {
+                    s.classList.add('completed');
+                }
+            });
+
+            // Add active class to current step (if in range)
+            if (step >= 1 && step <= 6) {
                 document.getElementById(`step${step}`).classList.add('active');
             }
             currentStep = step;
@@ -951,18 +960,6 @@
 
         function updateProgress(percent) {
             document.getElementById('progress-fill').style.width = percent + '%';
-        }
-
-        function updateStatus(statusId, color) {
-            const statusEl = document.getElementById(statusId);
-            if (statusEl) {
-                statusEl.classList.remove('active', 'processing');
-                if (state === 'active') {
-                    statusEl.classList.add('active');
-                } else if (state === 'processing') {
-                    statusEl.classList.add('processing');
-                }
-            }
         }
 
         function setStatus(statusId, color) {
@@ -1090,6 +1087,7 @@
                     showMessage("📁 " + data, false);
                     setStatus('photo-status', 'yellow');
                     setStatus('bts-status', 'yellow');
+                    setStatus('sim-status', 'yellow');
                     updateStep(3);
                     updateProgress(25);
                     
@@ -1121,6 +1119,7 @@
                     showMessage("❌ Error uploading image", true);
                     setStatus('photo-status', 'red');
                     setStatus('bts-status', 'red');
+                    setStatus('sim-status', 'red');
                 });
         }
 
@@ -1134,6 +1133,7 @@
                     showMessage("📸 " + data, false);
                     setStatus('photo-status', 'yellow');
                     setStatus('bts-status', 'yellow');
+                    setStatus('sim-status', 'yellow');
                     updateStep(3);
                     updateProgress(25);
                     
@@ -1165,6 +1165,7 @@
                     showMessage("❌ Error capturing photo", true);
                     setStatus('photo-status', 'red');
                     setStatus('bts-status', 'red');
+                    setStatus('sim-status', 'red');
                 });
         }
 
@@ -1177,6 +1178,7 @@
                     showLoading(false);
                     setStatus('photo-status', 'green');
                     setStatus('bts-status', 'green');
+                    setStatus('sim-status', 'yellow');
                     checkCSVExists();
 
                     setTimeout(() => {
@@ -1210,6 +1212,7 @@
                     showMessage("❌ Error processing photo", true);
                     setStatus('photo-status', 'red');
                     setStatus('bts-status', 'red');
+                    setStatus('sim-status', 'red');
                 });
         }
 

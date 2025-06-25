@@ -160,6 +160,19 @@ class ImageProcessor(Node):
         self.get_logger().info(f'Captured Image cropped to 4:3 and saved to: {image_path}')
         return jsonify({"message": "Image cropped to 4:3 successfully!"}), 200
 
+    #---------- Detele CSV ----------
+    def delete_csv(self):
+        """Deletes the CSV file in the output directory."""
+        csv_path = os.path.join(self.output_dir, "waypoints.csv")
+        if os.path.isfile(csv_path):
+            try:
+                os.remove(csv_path)
+                self.get_logger().info(f"Deleted existing waypoints.csv: {csv_path}")
+            except Exception as e:
+                self.get_logger().error(f"Failed to delete waypoints.csv: {e}")
+        else:
+            self.get_logger().info("waypoints.csv does not exist, nothing to delete.")
+
     #---------- Image Processing ----------
     def process_image(self):
         # Read the captured image 
@@ -396,19 +409,6 @@ class ImageProcessor(Node):
         # Save final sketch
         final_sketch = cv2.cvtColor(edges_colored, cv2.COLOR_BGR2GRAY)
 
-        # Add a border to the sketch
-        # border_thickness = 1  # Thickness of the border in pixels
-        # border_color = (255, 255, 255)  # White border
-        # final_sketch = cv2.copyMakeBorder(
-        #     final_sketch,
-        #     top=border_thickness,
-        #     bottom=border_thickness,
-        #     left=border_thickness,
-        #     right=border_thickness,
-        #     borderType=cv2.BORDER_CONSTANT,
-        #     value=border_color
-        # )
-
         # Save the final sketch
         sketch_image_path = os.path.join(self.output_dir, "6_sketch.jpg")
         cv2.imwrite(sketch_image_path, final_sketch)
@@ -436,6 +436,7 @@ def capture_frame():
 
 @app.route('/process', methods=['POST'])
 def process_frame():
+    image_processor.delete_csv()
     return image_processor.process_image()
 
 @app.route('/faceToggle', methods=['POST'])
