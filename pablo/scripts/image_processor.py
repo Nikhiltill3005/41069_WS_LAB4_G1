@@ -472,6 +472,11 @@ def upload_image():
     image_processor.resize_image()
     return f"File uploaded successfully: {new_filename}", 200
 
+@app.route('/reset', methods=['POST'])
+def reset():
+    image_processor.delete_old_files()
+    return "Reset successfully!", 200
+
 @app.route('/faceToggleState', methods=['GET'])
 def get_face_toggle_state():
     # Return the current state as JSON

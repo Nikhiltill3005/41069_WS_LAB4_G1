@@ -820,8 +820,12 @@
 
             <div class="controls">
                 <div class="button-wrapper">
-                    <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
-                    <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
+                    <div class="button-row">
+                        <button onclick="reset()">🔄 Reset</button>
+                        
+                        <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
+                        <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
+                    </div>
                 
                     <div class="button-row">
                         <div class="checkbox">
@@ -1413,6 +1417,36 @@
                     console.error("Error fetching face toggle state:", error);
                 });
         }
+
+        function reset(){
+            //Delete Files
+            fetch("http://localhost:5000/reset", { method: "POST" })
+                .then(response => response.text())
+                .then(data => {
+                    showMessage("🔄 " + data, false);
+                    resetUI();
+                })
+                .catch(error => {
+                    console.error("Error resetting:", error);
+                    showMessage("❌ Error resetting", true);
+                });
+        }
+
+        function resetUI() {
+            // Reset all UI elements to initial state
+            currentImageIndex = 0;
+            currentBTSImageIndex = 0;
+            updateStep(1);
+            updateProgress(0);
+            document.getElementById('photo-img').src = "http://localhost:5000/image/0_selfie.jpg";
+            document.getElementById('photo-label').textContent = "IMAGE";
+            document.getElementById('bts-img').src = "http://localhost:5000/image/1_bg_removed.png";
+            document.getElementById('btsText').textContent = "";
+            setStatus('photo-status', 'red');
+            setStatus('bts-status', 'red');
+            setStatus('sim-status', 'yellow');
+            showMessage("🔄 System reset complete", false);
+        }   
 
         // Initialize webcam status as active
         window.addEventListener('DOMContentLoaded', function() {
