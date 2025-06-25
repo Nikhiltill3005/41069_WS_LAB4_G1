@@ -283,7 +283,8 @@
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255,255,255,0.98);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
             border-radius: 10px;
             margin: 0;
             padding: 0px;
@@ -545,7 +546,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
+            background-color: #bbb;
             transition: 0.4s;
             border-radius: 24px;
         }
@@ -557,13 +558,13 @@
             width: 18px;
             left: 3px;
             bottom: 3px;
-            background-color: white;
+            background-color: #3972c7;
             transition: 0.4s;
             border-radius: 50%;
         }
 
         input:checked + .slider {
-            background-color: #28a745;
+            background-color: #bbb;
         }
 
         input:checked + .slider:before {
@@ -701,7 +702,7 @@
             background-color: rgba(44, 130, 255, 0.2); /* Transparent white */
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px); /* For Safari */
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2), inset 0 4px 20px rgba(44,130,255,0.3);
+            box-shadow: 0 8px 32px rgba(44, 130, 255, 0.2), inset 0 4px 20px rgba(44,130,255,0.3);
             border-radius: 15px;
             padding: 5px;
             margin: 0px 10px 10px 10px;
@@ -710,15 +711,16 @@
             bottom: 0;
             height: 40px;
             position: absolute;
-            text-align: center;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+            z-index: 10;
         }
 
         .btsText-wrapper h1{
             color: white;
-            font-weight: bold;
-            font-size: 20px;
-            text-align: center;
-            margin-bottom: 10px;
+            font-weight: normal;
+            font-size: 22px;
             flex-shrink: 0;
         }
 
@@ -812,17 +814,20 @@
                 <div class="button-wrapper">
                     <input type="file" id="image-upload" accept="image/*" onchange="uploadImage(event)">
                     <button onclick="document.getElementById('image-upload').click()">📤 Upload Image</button>
+                
                     <div class="button-row">
                         <div class="checkbox">
-                            <label>MODE:</label>
+                            <label id="solo-label" style="color: #000">Solo</label>
                             <label class="switch">
                                 <input type="checkbox" id="face-toggle-switch" onchange="toggleFaceMode()">
                                 <span class="slider"></span>
                             </label>
-                            <span id="face-toggle-label">Solo Photo</span>
+                            <label id="group-label" style="color: #888;">Group</label>
                         </div>
+
                         <button onclick="processPhoto()">🖼️ Generate Sketch</button>
                     </div>
+                    
                     <div class="button-row">
                         <div class="checkbox">
                             <input type="checkbox" id="selfie" checked>
@@ -830,8 +835,10 @@
                             <input type="checkbox" id="sketch" checked>
                             <label for="sketch">Sketch</label>
                         </div>
+
                         <button onclick="downloadImage('photo-img')">💾 Download</button>
                     </div>  
+                    
                     <button id="start-drawing-button" onclick="startDrawing()" disabled>✏️ Start Drawing</button>
                 </div>
             </div>
@@ -890,13 +897,13 @@
                     <button onclick="toggleBTSImage('right')">&rarr;</button>
                 </div>
                 <div class="bts-box">
-                    <div class="status-indicator" id="photo-status"></div>
+                    <div class="status-indicator" id="bts-status"></div>
                     <img id="bts-img" src="http://localhost:5000/image/1_bg_removed.png" alt="" />
-                    <div id="csv-scrollbox"></div>
 
                     <div class="btsText-wrapper">
                         <h1 id="btsText"></h1>
                     </div>
+                    <div id="csv-scrollbox"></div>
                 </div>
             </div>
         </div>
@@ -942,7 +949,11 @@
             currentStep = step;
         }
 
-        function updateStatus(statusId, state) {
+        function updateProgress(percent) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+        }
+
+        function updateStatus(statusId, color) {
             const statusEl = document.getElementById(statusId);
             if (statusEl) {
                 statusEl.classList.remove('active', 'processing');
@@ -954,9 +965,20 @@
             }
         }
 
-        function updateProgress(percent) {
-            document.getElementById('progress-fill').style.width = percent + '%';
+        function setStatus(statusId, color) {
+            const statusEl = document.getElementById(statusId);
+            statusEl.classList.remove('active', 'processing', 'error');
+            if (color === 'green') statusEl.classList.add('active');
+            else if (color === 'yellow') statusEl.classList.add('processing');
+            else if (color === 'red') statusEl.classList.add('error');
         }
+
+        function checkCameraStatus() {
+            const webcam = document.getElementById('webcam-feed');
+            webcam.onerror = () => setStatus('webcam-status', 'red');
+            webcam.onload = () => setStatus('webcam-status', 'green');
+        }
+        
 
         function showMessage(message, isError = false) {
             const errorEl = document.getElementById('error-message');
@@ -1015,11 +1037,20 @@
                         // Format CSV as a table
                         const rows = data.trim().split('\n').map(row => row.split(','));
                         let html = '<table style="width:100%; border-collapse:collapse;">';
-                        rows.forEach(cols => {
+                        rows.forEach((cols, idx) => {
                             html += '<tr>';
-                            cols.forEach(col => {
-                                html += `<td style="border:1px solid #ccc; padding:2px 6px;">${col}</td>`;
-                            });
+                            // Add row number column (skip header)
+                            if (idx === 0) {
+                                html += `<th style="border:1px solid #ccc; padding:2px 6px;">No.</th>`;
+                                cols.forEach(col => {
+                                    html += `<th style="border:1px solid #ccc; padding:2px 6px;">${col}</th>`;
+                                });
+                            } else {
+                                html += `<td style="border:1px solid #ccc; padding:2px 6px;">${idx}</td>`;
+                                cols.forEach(col => {
+                                    html += `<td style="border:1px solid #ccc; padding:2px 6px;">${col}</td>`;
+                                });
+                            }
                             html += '</tr>';
                         });
                         html += '</table>';
@@ -1048,7 +1079,6 @@
             formData.append("image", file);
 
             showLoading(true);
-            updateStatus('photo-status', 'processing');
 
             fetch("http://localhost:5000/upload", {
                 method: "POST",
@@ -1058,7 +1088,8 @@
                 .then(data => {
                     showLoading(false);
                     showMessage("📁 " + data, false);
-                    updateStatus('photo-status', 'active');
+                    setStatus('photo-status', 'yellow');
+                    setStatus('bts-status', 'yellow');
                     updateStep(3);
                     updateProgress(25);
                     
@@ -1077,6 +1108,7 @@
                     setTimeout(() => {
                         const timestamp = new Date().getTime();
                         const btsImg = document.getElementById('bts-img');
+                        document.getElementById('btsText').textContent = "";
                         btsImg.src = `http://localhost:5000/image/1_bg_removed.png?t=${timestamp}`;
                         currentBTSImageIndex = 0;
                     }, 2000);
@@ -1087,20 +1119,21 @@
                     console.error("Error uploading image:", error);
                     showLoading(false);
                     showMessage("❌ Error uploading image", true);
-                    updateStatus('photo-status', '');
+                    setStatus('photo-status', 'red');
+                    setStatus('bts-status', 'red');
                 });
         }
 
         function capturePhoto() {
             showLoading(true);
-            updateStatus('photo-status', 'processing');
             
             fetch("http://localhost:5000/capture", { method: "POST" })
                 .then(response => response.text())
                 .then(data => {
                     showLoading(false);
                     showMessage("📸 " + data, false);
-                    updateStatus('photo-status', 'active');
+                    setStatus('photo-status', 'yellow');
+                    setStatus('bts-status', 'yellow');
                     updateStep(3);
                     updateProgress(25);
                     
@@ -1112,8 +1145,16 @@
                         currentImageIndex = 0;
                         const timestamp = new Date().getTime();
                         const photoImg = document.getElementById('photo-img');
+                        document.getElementById('photo-label').textContent = "IMAGE";
                         photoImg.src = `http://localhost:5000/image/0_selfie.jpg?t=${timestamp}`;
-                        document.getElementById('photo-img').src = 'http://localhost:5000/image/0_selfie.jpg?t=' + new Date().getTime();
+                    }, 2000);
+
+                    setTimeout(() => {
+                        const timestamp = new Date().getTime();
+                        const btsImg = document.getElementById('bts-img');
+                        document.getElementById('btsText').textContent = "";
+                        btsImg.src = `http://localhost:5000/image/1_bg_removed.png?t=${timestamp}`;
+                        currentBTSImageIndex = 0;
                     }, 2000);
 
                     checkCSVExists();
@@ -1122,18 +1163,21 @@
                     console.error("Error:", error);
                     showLoading(false);
                     showMessage("❌ Error capturing photo", true);
-                    updateStatus('photo-status', '');
+                    setStatus('photo-status', 'red');
+                    setStatus('bts-status', 'red');
                 });
         }
 
         function processPhoto() {
             showLoading(true);
-            updateStatus('photo-status', 'processing');
             
             fetch("http://localhost:5000/process", { method: "POST" })
                 .then(response => response.text())
                 .then(data => {
                     showLoading(false);
+                    setStatus('photo-status', 'green');
+                    setStatus('bts-status', 'green');
+                    checkCSVExists();
 
                     setTimeout(() => {
                         const timestamp = new Date().getTime();
@@ -1143,7 +1187,9 @@
                         currentImageIndex = 1;
 
                         const btsImg = document.getElementById('bts-img');
+                        const btsText = document.getElementById('btsText');
                         btsImg.src = `http://localhost:5000/image/1_bg_removed.png?t=${timestamp}`;
+                        btsText.textContent = "BACKGROUND REMOVED";
                     }, 2000);
 
                     checkSketchExists().then(exists => {
@@ -1162,20 +1208,20 @@
                     console.error("Error:", error);
                     showLoading(false);
                     showMessage("❌ Error processing photo", true);
-                    updateStatus('photo-status', '');
+                    setStatus('photo-status', 'red');
+                    setStatus('bts-status', 'red');
                 });
         }
 
         function startDrawing() {
             showLoading(true);
-            updateStatus('sim-status', 'processing');
             
             fetch("http://localhost:5000/draw", { method: "POST" })
                 .then(response => response.text())
                 .then(data => {
                     showLoading(false);
                     showMessage("🎉 " + data, false);
-                    updateStatus('sim-status', 'active');
+                    setStatus('sim-status', 'green');
                     updateStep(5);
                     updateProgress(100);
                 })
@@ -1183,7 +1229,7 @@
                     console.error("Error:", error);
                     showLoading(false);
                     showMessage("❌ Error during drawing", true);
-                    updateStatus('sim-status', '');
+                    setStatus('sim-status', 'red');
                 });
         }
 
@@ -1237,15 +1283,49 @@
         function checkSketchExists() {
             const sketchUrl = "http://localhost:5000/image/6_sketch.jpg";
             return fetch(sketchUrl, { method: "HEAD" })
-                .then(response => response.ok)
-                .catch(() => false);
+                .then(response => {
+                    if (response.ok) {
+                        setStatus('photo-status', 'green'); // Sketch exists
+                        return true;
+                    }
+                })
+                .catch(() => {
+                    setStatus('photo-status', 'red');
+                    return false;
+                });
         }
 
-        function checkBackendExists(){
-            const backendUrl = "http://localhost:5000/image/1_bg_removed.png"; // Check for first BTS image
-            return fetch(backendUrl, { method: "HEAD" })
-                .then(response => response.ok)
-                .catch(() => false);
+        function checkSelfieExists(){
+            const selfieUrl = "http://localhost:5000/image/0_selfie.jpg";
+            return fetch(selfieUrl, { method: "HEAD" })
+                .then(response => {
+                    if (response.ok) {
+                        setStatus('photo-status', 'yellow'); // Selfie exists
+                        return true;
+                    }
+                })
+                .catch(() => {
+                    checkSelfieExists();
+                    return false;
+                });
+        }
+
+        function checkBackendExists() {
+            const csvUrl = "http://localhost:5000/image/waypoints.csv";
+            return fetch(csvUrl, { method: "HEAD" })
+                .then(response => {
+                    if (response.ok) {
+                        setStatus('bts-status', 'green'); // waypoints.csv exists
+                        return true;
+                    } else {
+                        setStatus('bts-status', 'red'); // waypoints.csv does not exist
+                        return false;
+                    }
+                })
+                .catch(() => {
+                    setStatus('bts-status', 'red');
+                    return false;
+                });
         }
 
         function checkCSVExists() {
@@ -1300,8 +1380,13 @@
 
         function toggleFaceMode() {
             const isChecked = document.getElementById('face-toggle-switch').checked;
-            const label = document.getElementById('face-toggle-label');
-            label.textContent = isChecked ? "Group Photo" : "Solo Photo";
+            // const label = document.getElementById('face-toggle-label');
+            // label.textContent = isChecked ? "Group Photo" : "Solo Photo";
+            const soloLabel = document.getElementById('solo-label');
+            const groupLabel = document.getElementById('group-label');
+            soloLabel.style.color = isChecked ? "#888" : "#000";
+            groupLabel.style.color = isChecked ? "#000" : "#888";
+
             // Send toggle to backend
             fetch("http://localhost:5000/faceToggle", { method: "POST" });
         }
@@ -1314,7 +1399,12 @@
                     const toggle = document.getElementById('face-toggle-switch');
                     const label = document.getElementById('face-toggle-label');
                     toggle.checked = !!data.facesToggle;
-                    label.textContent = toggle.checked ? "Group Photo" : "Solo Photo";
+                    const soloLabel = document.getElementById('solo-label');
+                    const groupLabel = document.getElementById('group-label');
+                    soloLabel.style.color = toggle.checked ? "#888" : "#000";
+                    groupLabel.style.color = toggle.checked ? "#000" : "#888";
+
+                    // label.textContent = toggle.checked ? "Group Photo" : "Solo Photo";
                 })
                 .catch(error => {
                     console.error("Error fetching face toggle state:", error);
@@ -1324,8 +1414,10 @@
         // Initialize webcam status as active
         window.addEventListener('DOMContentLoaded', function() {
             checkCSVExists();
+            checkCameraStatus();
+            checkSketchExists();
+            checkBackendExists();
             syncFaceToggleSwitch();
-            updateStatus('webcam-status', 'active');
             updateStep(1);
         });
 
@@ -1348,7 +1440,9 @@
                 productVersion: "0.1.0",
             }).then((unityInstance) => {
                 // Unity successfully loaded
+                setStatus('sim-status', 'yellow');
             }).catch((message) => {
+                setStatus('sim-status', 'red');
                 alert(message);
             });
     });
