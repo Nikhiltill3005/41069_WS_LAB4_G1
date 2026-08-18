@@ -16,5 +16,5 @@ Our project allows the user to take a selfie using the GUI and watch as our robo
  
 | | |
 |---|---|
-| ![Photo 1](docs/images/photo1.jpg) | ![Photo 2](docs/images/photo2.jpg) |
+| ![Photo 1](pablo/RS2_GUI.jpeg) | ![Photo 2](pablo/RS2-TECHFEST.jpeg) |
  
