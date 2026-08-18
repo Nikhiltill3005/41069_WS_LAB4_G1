@@ -10,7 +10,7 @@ Our project allows the user to take a selfie using the GUI and watch as our robo
   
 ## Demo
  
-![SpotiPi in action](docs/images/demo.gif)
+![SpotiPi in action](pablo/UR3.gif)
  
 ## Gallery
  
